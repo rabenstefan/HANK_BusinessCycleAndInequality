@@ -153,6 +153,13 @@ julia> n_par = NumericalParameters(mmin = -6.6, mmax = 1000)
 	State2Control_save::Array{Float64,2} = zeros(ncontrols, nstates)
 
 	dist_guess::Array{Float64,3} = ones(nm, nk, ny)/(nm*nk*ny)
+	# Indexes where Jacobian is constant
+	indexes_const::Array{Int,1} = []
+	indexes_constP::Array{Int,1} = []
+	nstates_red::Int = nstates
+	ncontrols_red::Int = ncontrols
+	nstates_redP::Int = nstates
+	ncontrols_redP::Int = ncontrols
 end
 
 @doc raw"""

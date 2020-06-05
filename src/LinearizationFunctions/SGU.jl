@@ -45,53 +45,49 @@ function SGU(XSS::Array,A::Array,B::Array, m_par::ModelParameters, n_par::Numeri
     ############################################################################
     # Check whether Steady state solves the difference equation
     ############################################################################
-    length_X0 = indexes.profits # Convention is that profits is the last control
-    X0 = zeros(length_X0) .+ ForwardDiff.Dual(0.0,tuple(zeros(n_FD)...))
-    @make_deriv n_FD
-    F  = Fsys(X0,X0,XSS,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC, Copula)
-    # if maximum(abs.(F))/10>n_par.ϵ
-    #     @warn  "F=0 is not at required precision"
-    # end
-    BLAS.set_num_threads(1)
-
+    # Convention is that profits is the last control
+    length_X0 = n_par.ntotal+1
+    # H as folded tensor
+    H   = spzeros(length_X0,4*(length_X0)^2)
+    F3  = zeros(length_X0,n_par.nstates+1)
+    F1 = zeros(length_X0,n_par.nstates+1)
+    F4  = zeros(length_X0,n_par.ncontrols)
+    F2 = zeros(length_X0,n_par.ncontrols)
+    # Set indexes where whole column of jacobian is constant
+    @set! n_par.indexes_const = [indexes.Vm;indexes.Vk]
+    @set! n_par.nstates_red = n_par.nstates
+    @set! n_par.ncontrols_red = n_par.naggrcontrols
+    @set! n_par.indexes_constP = [indexes.distr_m;indexes.distr_k;indexes.distr_y]
+    @set! n_par.nstates_redP = n_par.naggrstates
+    @set! n_par.ncontrols_redP = n_par.ncontrols
+    # Differentiate
+    F(x,xp) = Fsys_wrap(x,xp,XSS,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula)
+    #BLAS.set_num_threads(1)
+    builtin_FO_SO!(F3,F1,F4,F2,H,F,n_par;chunksize=19);
+    # Trim FO derivatives by deleting row/column of permutation parameter
+    F3  = F3[1:end-1,1:n_par.nstates]
+    F4  = F4[1:end-1,:]
+    F1 = F1[1:end-1,1:n_par.nstates]
+    F2 = F2[1:end-1,:]
+    # Build Bd,Ad from blocks
+    B  = [F3 F4]
+    A  = [F1 F2]
+    # Redefine length_X0 for following calculations
+    length_X0 = n_par.ntotal
 
     ############################################################################
     # Calculate Jacobians of the Difference equation F
     ############################################################################
-    # B = zeros(length_X0, length_X0)
-    # A = zeros(length_X0, length_X0)
-    #-------------- loop over states T -----------------------------------------
-    state_loop!(B, Deriv, indexes,n_FD)
-
-    #------------- loop over controls T ----------------------------------------
 
     # Make use of the fact that Vk/Vm has no influence on any variable in
     # the system, thus derivative is 1
-    for i in indexes.Vm
-        B[i, i] = 1.0
-    end
+    B[[LinearIndices(B)[i,i] for i in n_par.indexes_const]] .= 1.0
 
-    for i in indexes.Vk
-        B[i, i] = 1.0
-    end
+    A[vcat([LinearIndices(A)[indexes.distr_m,i] for i in indexes.distr_m]...)] = reshape(-Γ[1][1:end-1,:],(:,1))
 
-    control_loop!(B, Deriv, indexes, length_X0,n_FD)
-
-    # ------------ loop over states and controls T+1 ---------------------------
-    for count = 1:n_par.nm-1 #in eachcol(A)
-        i = indexes.distr_m[count]
-        A[indexes.distr_m,i] = -Γ[1][1:end-1,count]
-    end
-    for count = 1:n_par.nk-1 #in eachcol(A)
-        i = indexes.distr_k[count]
-        A[indexes.distr_k,i] = -Γ[2][1:end-1,count]
-    end
-
-    for count = 1:n_par.ny-1 #in eachcol(A)
-        i = indexes.distr_y[count]
-        A[indexes.distr_y,i] = -Γ[3][1:end-1,count]
-    end
-    prime_loop!(A, DerivPrime, indexes, length_X0,n_FD)
+    A[vcat([LinearIndices(A)[indexes.distr_k,i] for i in indexes.distr_k]...)] = reshape(-Γ[2][1:end-1,:],(:,1))
+    
+    A[vcat([LinearIndices(A)[indexes.distr_y,i] for i in indexes.distr_y]...)] = reshape(-Γ[3][1:end-1,:],(:,1))
 
     ############################################################################
     # Solve the linearized model: Policy Functions and LOMs
@@ -100,10 +96,6 @@ function SGU(XSS::Array,A::Array,B::Array, m_par::ModelParameters, n_par::Numeri
     # BLAS.set_num_threads(1)
     if n_par.sol_algo == :lit
         @views begin
-            F1 = A[:, 1:n_par.nstates]
-            F2 = A[:, n_par.nstates+1:end]
-            F3 = B[:, 1:n_par.nstates]
-            F4 = B[:, n_par.nstates+1:end]
             BB = hcat(F1, F4)
             AA = F3 #hcat(F3, zeros(n_par.ntotal,n_par.ncontrols))
             CC = hcat(zeros(n_par.ntotal,n_par.nstates),F2)
@@ -178,36 +170,46 @@ function SGU(XSS::Array,A::Array,B::Array, m_par::ModelParameters, n_par::Numeri
     return gx, hx, alarm_sgu, nk, A, B
 end
 
-function state_loop!(B, Deriv, indexes,n_FD)
-    Threads.@threads for i = 1:n_FD:(indexes.Vm[1]-1) #in eachcol(B[:,1:(indexes.Vm[1]-1)])
-        aux = Deriv.(i)
-        for k = 1:min(n_FD,(indexes.Vm[1]-1)-i+1)
-            for j = 1:size(B,1)
-                B[j,i+k-1] = aux[j][k]
-            end
-        end
-    end
+function Fsys_wrap(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par::ModelParameters,
+    n_par::NumericalParameters, indexes::IndexStruct, Γ, compressionIndexes::Array{Array{Int,1},1},
+    DC,IDC,Copula::Function)
+    # Assume that permutation parameter is positioned at end of states,
+    # leave variables with constant derivatives as zeros.
+    ix_all = [i for i=1:n_par.ntotal]
+    X_old = zeros(eltype(X),n_par.ntotal)
+    X_old[setdiff(ix_all,n_par.indexes_const)] = [X[1:n_par.nstates_red];X[n_par.nstates_red+2:end]]
+    σ = X[n_par.nstates_red+1]
+    XPr_old = zeros(eltype(XPrime),n_par.ntotal)
+    XPr_old[setdiff(ix_all,n_par.indexes_constP)] = [XPrime[1:n_par.nstates_redP];XPrime[n_par.nstates_redP+2:end]]
+    σPr = XPrime[n_par.nstates_redP+1]
+    F = Fsys(X_old,XPr_old,Xss,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula)
+    shock_indexes = [getfield(indexes,s) for s in shock_names]
+    F[shock_indexes] = (1+σ)*F[shock_indexes]
+    return [F;σPr-σ]
 end
 
-function control_loop!(B, Deriv, indexes, length_X0,n_FD)
-    Threads.@threads for i = (indexes.Vk[end]+1):n_FD:length_X0
-        aux = Deriv.(i)
-        for k = 1:min(n_FD,length_X0-i+1)
-            for j = 1:size(B,1)
-                B[j,i+k-1] = aux[j][k]
-            end
-        end
-    end
-end
+function builtin_FO_SO!(Fx, FxP, Fy, FyP, H, F, n_par; chunksize = 5)
+    ntot = n_par.ntotal + 1
+    ntot_red    = n_par.nstates_red + 1 + n_par.ncontrols_red
+    ntot_redP   = n_par.nstates_redP + 1 + n_par.ncontrols_redP
+    x0      = zeros(ntot_red + ntot_redP)
+    
+    # Indices for map from sorting of Levintal (2017)
+    xi  = n_par.ncontrols_redP + n_par.ncontrols_red + n_par.nstates_redP + 2 : ntot_red + ntot_redP
+    yi  = n_par.ncontrols_redP + 1 : n_par.ncontrols_redP + n_par.ncontrols_red
+    xPi = n_par.ncontrols_redP + n_par.ncontrols_red + 1 : n_par.ncontrols_redP + n_par.ncontrols_red + n_par.nstates_redP + 1
+    yPi = 1 : n_par.ncontrols_redP
 
-# Calculating Jacobian to XPrime
-function prime_loop!(A, DerivPrime, indexes, length_X0,n_FD)
-    Threads.@threads for i = (1+indexes.distr_y[end]):n_FD:length_X0#in eachcol(A)
-        aux = DerivPrime.(i)
-        for k = 1:min(n_FD,length_X0-i+1)
-            for j = 1:size(A,1)
-                A[j,i+k-1] = aux[j][k]
-            end
-        end
-    end
+    aux(x)      = F([x[xi];x[yi]],[x[xPi];x[yPi]])
+    # Select chunk size
+    cfg_so      = ForwardDiff.JacobianConfig(nothing,x0,ForwardDiff.Chunk{chunksize}())
+    diffres     = ForwardDiff.jacobian(x -> aux(x),x0,cfg_so)#[aux(x);vec(ForwardDiff.jacobian(aux,x))],x0,cfg_so)
+    #H[:,:]      = reshape(diffres[ntot+1:end,:],ntot,Hcoln)
+    ix_sts = [i for i=1:n_par.nstates]
+    ix_cntr = [i for i=1:n_par.ncontrols]
+
+    Fx[:,[setdiff(ix_sts,n_par.indexes_const);n_par.nstates+1]]     = diffres[1:ntot,xi']
+    FxP[:,[setdiff(ix_sts,n_par.indexes_constP);n_par.nstates+1]]    = diffres[1:ntot,xPi']
+    Fy[:,setdiff(ix_cntr,n_par.indexes_const .- n_par.nstates)]     = diffres[1:ntot,yi']
+    FyP[:,setdiff(ix_cntr,n_par.indexes_constP .- n_par.nstates)]    = diffres[1:ntot,yPi']
 end
