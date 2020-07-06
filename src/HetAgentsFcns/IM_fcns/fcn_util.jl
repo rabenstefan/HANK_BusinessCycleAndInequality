@@ -1,4 +1,4 @@
-function util(c::AbstractArray, m_par::ModelParameters)
+function util(c::AbstractArray, m_par)
     if m_par.γ == 1.0
         util = log.(c)
     else

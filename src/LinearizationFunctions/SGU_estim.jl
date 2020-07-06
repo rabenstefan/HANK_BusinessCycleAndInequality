@@ -22,8 +22,8 @@ by [`SGU()`](@ref)).
 as in [`SGU()`](@ref)
 """
 function SGU_estim(XSSaggr::Array, A::Array, B::Array,
-    m_par::ModelParameters, n_par::NumericalParameters, indexes::IndexStruct,
-    indexes_aggr::IndexStructAggr, distrSS::AbstractArray; estim=estim)
+    m_par, n_par::NumericalParameters, indexes,
+    indexes_aggr, distrSS::AbstractArray; estim=estim)
 
     ############################################################################
     # Prepare elements used for uncompression

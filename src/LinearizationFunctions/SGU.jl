@@ -28,8 +28,8 @@ given by `global` `n_FD`. Make use of model knowledge to set some entries manual
 - `A`,`B`: first derivatives of [`Fsys()`](@ref) with respect to arguments `X` [`B`] and
     `XPrime` [`A`]
 """
-function SGU(XSS::Array,A::Array,B::Array, m_par::ModelParameters, n_par::NumericalParameters,
-    indexes::IndexStruct, Copula::Function, compressionIndexes::Array{Array{Int,1},1}, distrSS::Array{Float64,3}; estim=false)
+function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
+    indexes, Copula::Function, compressionIndexes::Array{Array{Int,1},1}, distrSS::Array{Float64,3}; estim=false,Fsys_agg::Function = Fsys_agg)
     ############################################################################
     # Prepare elements used for uncompression
     ############################################################################
@@ -61,7 +61,7 @@ function SGU(XSS::Array,A::Array,B::Array, m_par::ModelParameters, n_par::Numeri
     @set! n_par.nstates_redP = n_par.naggrstates
     @set! n_par.ncontrols_redP = n_par.ncontrols
     # Differentiate
-    F(x,xp) = Fsys_wrap(x,xp,XSS,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula)
+    F(x,xp) = Fsys_wrap(x,xp,XSS,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg)
     #BLAS.set_num_threads(1)
     builtin_FO_SO!(F3,F1,F4,F2,H,F,n_par;chunksize=19);
     # Trim FO derivatives by deleting row/column of permutation parameter
@@ -170,9 +170,9 @@ function SGU(XSS::Array,A::Array,B::Array, m_par::ModelParameters, n_par::Numeri
     return gx, hx, alarm_sgu, nk, A, B
 end
 
-function Fsys_wrap(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par::ModelParameters,
-    n_par::NumericalParameters, indexes::IndexStruct, Γ, compressionIndexes::Array{Array{Int,1},1},
-    DC,IDC,Copula::Function)
+function Fsys_wrap(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par,
+    n_par::NumericalParameters, indexes, Γ, compressionIndexes::Array{Array{Int,1},1},
+    DC,IDC,Copula::Function;Fsys_agg::Function=Fsys_agg)
     # Assume that permutation parameter is positioned at end of states,
     # leave variables with constant derivatives as zeros.
     ix_all = [i for i=1:n_par.ntotal]
@@ -182,8 +182,8 @@ function Fsys_wrap(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1
     XPr_old = zeros(eltype(XPrime),n_par.ntotal)
     XPr_old[setdiff(ix_all,n_par.indexes_constP)] = [XPrime[1:n_par.nstates_redP];XPrime[n_par.nstates_redP+2:end]]
     σPr = XPrime[n_par.nstates_redP+1]
-    F = Fsys(X_old,XPr_old,Xss,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula)
-    shock_indexes = [getfield(indexes,s) for s in shock_names]
+    F = Fsys(X_old,XPr_old,Xss,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg)
+    shock_indexes = [getfield(indexes,s) for s in e_set.shock_names]
     F[shock_indexes] = (1+σ)*F[shock_indexes]
     return [F;σPr-σ]
 end

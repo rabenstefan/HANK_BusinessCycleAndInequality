@@ -4,7 +4,7 @@ function updateV(EVk::Array,#{ForwardDiff.Dual{Nothing,Float64,5},3},
                  m_n_star::Array,#{ForwardDiff.Dual{Nothing,Float64,5},3},
                  r,#::Union{Float64,DualNumbers.Dual{Float64}},
                  Q,#::Union{Float64,DualNumbers.Dual{Float64}},
-                 m_par::ModelParameters,#::Union{Float64,DualNumbers.Dual{Float64}},
+                 m_par,#::Union{Float64,DualNumbers.Dual{Float64}},
                  n_par::NumericalParameters,#::Union{Float64,DualNumbers.Dual{Float64}},
                  Π::Array)#{ForwardDiff.Dual{Nothing,Float64,5},2})#Union{Array{Float64,2},Array{DualNumbers.Dual{Float64},2}})
 

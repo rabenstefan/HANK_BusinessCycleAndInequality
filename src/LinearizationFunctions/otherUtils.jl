@@ -51,7 +51,7 @@ Create function `fn_name` that returns an instance of `struct` `IndexStructAggr`
 `1` to `length(aggr_names)` (both steady state and deviation from it).
 """
 macro make_fnaggr(fn_name,  aggr_names)
-	state_names=Symbol.(eval((aggr_names)))
+	state_names=Symbol.(Base.eval(Main,(aggr_names)))
 	n_states = length(state_names)
 
 	fieldsSS_states = [:( $i) for i = 1:n_states]
@@ -75,9 +75,9 @@ Create function `fn_name` that returns an instance of `struct` `IndexStruct`
 inferred from numerical parameters and compression indexes.
 """
 macro make_fn(fn_name,  s_names, c_names)
-	state_names=Symbol.(eval((s_names)))
+	state_names=Symbol.(Base.eval(Main,(s_names)))
 	n_states = length(state_names)
-	control_names=Symbol.(eval((c_names)))
+	control_names=Symbol.(Base.eval(Main,(c_names)))
 	n_controls = length(control_names)
 
 	fieldsSS_states = [:(tNo + $i) for i = 1:n_states]

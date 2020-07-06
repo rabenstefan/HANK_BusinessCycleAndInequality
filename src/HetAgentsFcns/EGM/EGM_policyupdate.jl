@@ -21,7 +21,7 @@ function EGM_policyupdate(EVm::Array,#{ForwardDiff.Dual{Nothing,Float64,5},3},
                           Tshock::Real,#::ForwardDiff.Dual{Nothing,Float64,5},
                           inc::Array,#{Array{ForwardDiff.Dual{Nothing,Float64,5},3},1},
                           n_par::NumericalParameters,
-                          m_par::ModelParameters, warnme)
+                          m_par, warnme)
 
     ################### Copy/read-out stuff#####################################
 #    @timev begin #0.008451 seconds (12 allocations: 7.178 MiB)

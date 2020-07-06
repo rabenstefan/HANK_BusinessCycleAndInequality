@@ -7,8 +7,8 @@ Return deviations from aggregate equilibrium conditions.
 (which is how function is called by [`SGU_estim()`](@ref)), variable-vectors
 `X`,`XPrime`, and `Xss` only contain the aggregate variables of the model.
 """
-function Fsys_agg(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1},distrSS::AbstractArray, m_par::ModelParameters,
-              n_par::NumericalParameters, indexes::Union{IndexStructAggr,IndexStruct})
+function Fsys_agg(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1},distrSS::AbstractArray, m_par,
+              n_par::NumericalParameters, indexes)
               # The function call with Duals takes
               # Reserve space for error terms
     F = zeros(eltype(X),size(X))

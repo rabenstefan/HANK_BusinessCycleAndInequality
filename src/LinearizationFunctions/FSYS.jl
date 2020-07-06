@@ -25,10 +25,10 @@ julia> Fsys(zeros(ntotal),zeros(ntotal),XSS,m_par,n_par,indexes,Γ,compressionIn
  0.0
 ```
 """
-function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par::ModelParameters,
-              n_par::NumericalParameters, indexes::IndexStruct, Γ::Array{Array{Float64,2},1},
+function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par,
+              n_par::NumericalParameters, indexes, Γ::Array{Array{Float64,2},1},
               compressionIndexes::Array{Array{Int,1},1}, DC::Array{Array{Float64,2},1},
-              IDC::Array{Adjoint{Float64,Array{Float64,2}},1}, Copula::Function)
+              IDC::Array{Adjoint{Float64,Array{Float64,2}},1}, Copula::Function;Fsys_agg::Function = Fsys_agg)
               # The function call with Duals takes
               # Reserve space for error terms
     F = zeros(eltype(X),size(X))

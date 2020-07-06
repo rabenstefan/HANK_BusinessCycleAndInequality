@@ -102,11 +102,11 @@ H               = (Paux[1,1:end-1]'*grid_y[1:end-1])
 
 # Write changed parameter values to n_par
 @set! n_par.ny          = ny + 1
-@set! n_par.nstates     = (ny + 1) + n_par.nk + n_par.nm + length(state_names) - 3
-@set! n_par.naggrstates = length(state_names)
-@set! n_par.naggrcontrols = length(control_names)
-@set! n_par.aggr_names  = aggr_names
-@set! n_par.naggr       = length(aggr_names)
+@set! n_par.nstates     = (ny + 1) + n_par.nk + n_par.nm + length(state_names_all) - 3
+@set! n_par.naggrstates = length(state_names_all)
+@set! n_par.naggrcontrols = length(control_names_all)
+@set! n_par.aggr_names  = [state_names_all; control_names_all]
+@set! n_par.naggr       = length(aggr_names_all)
 
 @set! n_par.bounds_y    = bounds
 @set! n_par.ϵ           = 1e-10
@@ -222,8 +222,7 @@ Copula(x::Vector,y::Vector,z::Vector) = mylinearinterpolate3(CDF_m, CDF_k, CDF_y
 @include "../input_aggregate_steady_state.jl"
 
 # write to XSS vector
-@writeXSS
-
+@writeXSS state_names control_names
 # produce indexes to access XSS etc.
 indexes = produce_indexes(n_par, compressionIndexesVm, compressionIndexesVk)
 indexes_aggr = produce_indexes_aggr(n_par)

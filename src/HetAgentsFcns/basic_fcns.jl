@@ -7,10 +7,10 @@ invmutil(mu::Array,#Union{Array{Float64},Array{DualNumbers.Dual{Float64}}},
     ξ::Float64)  = 1.0 ./ (sqrt.(sqrt.(mu)))#mu.^(1.0./ξ)#
 
 # Incomes (K:capital, A: TFP): Interst rate = MPK.-δ, Wage = MPL, profits = Y-wL-(r+\delta)*K
-interest(K::Number, A::Number,N::Number, m_par::ModelParameters) = A.* m_par.α .* (K./N) .^(m_par.α - 1.0) .- m_par.δ_0         # A=TFP * MC
-wage(K::Number, A::Number,N::Number, m_par::ModelParameters)     = A.* (1-m_par.α) .* (K./N) .^m_par.α # A=TFP * MC
-output(K::Number, A::Number,N::Number, m_par::ModelParameters)  = A.* K .^(m_par.α).*N .^(1-m_par.α)
-employment(K::Number, A::Number, m_par::ModelParameters)     = (A.* (1.0-m_par.α) .* (m_par.τ_lev .* (1.0 - m_par.τ_prog)).^(1.0 /(1.0 - m_par.τ_prog)) .* K .^(m_par.α )).^((1.0 - m_par.τ_prog)./(m_par.γ+m_par.τ_prog+(m_par.α).*(1 - m_par.τ_prog))) # A=TFP*MC
+interest(K::Number, A::Number,N::Number, m_par) = A.* m_par.α .* (K./N) .^(m_par.α - 1.0) .- m_par.δ_0         # A=TFP * MC
+wage(K::Number, A::Number,N::Number, m_par)     = A.* (1-m_par.α) .* (K./N) .^m_par.α # A=TFP * MC
+output(K::Number, A::Number,N::Number, m_par)  = A.* K .^(m_par.α).*N .^(1-m_par.α)
+employment(K::Number, A::Number, m_par)     = (A.* (1.0-m_par.α) .* (m_par.τ_lev .* (1.0 - m_par.τ_prog)).^(1.0 /(1.0 - m_par.τ_prog)) .* K .^(m_par.α )).^((1.0 - m_par.τ_prog)./(m_par.γ+m_par.τ_prog+(m_par.α).*(1 - m_par.τ_prog))) # A=TFP*MC
 
 @doc raw"""
     distrSummaries(distr,c_a_star,c_n_star,n_par,inc,incgross,m_par)
@@ -34,7 +34,7 @@ income and wealth shares, and 10%, 50%, and 90%-consumption quantiles.
 """
 function distrSummaries(distr::AbstractArray,c_a_star::AbstractArray,
                         c_n_star::AbstractArray, n_par::NumericalParameters,
-                        inc::AbstractArray,incgross::AbstractArray, m_par::ModelParameters)
+                        inc::AbstractArray,incgross::AbstractArray, m_par)
     ## Distributional summaries
     mplusk = zeros(n_par.nk.*n_par.nm)
     for k = 1:n_par.nk

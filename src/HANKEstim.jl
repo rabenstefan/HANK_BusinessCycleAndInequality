@@ -25,11 +25,8 @@ export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, 
         ModelParameters, NumericalParameters, EstimationSettings,
         load_steadystate, save_steadystate, compute_steadystate, SteadyResults,
         Tauchen, EGM_policyupdate, Kdiff, distrSummaries, @generate_equations,
-        @make_deriv, @make_deriv_estim, prioreval
-
-include("input_aggregate_names.jl")
-
-aggr_names = [state_names; control_names]
+        @make_deriv, @make_deriv_estim, prioreval, load_n_par, update_XSS, @include,
+        employment, output, wage
 
 distr_names=["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share",
 "I90sharenet", "P9010I", "w90share", "P10C", "P50C", "P90C"]
@@ -97,10 +94,10 @@ end
     save_steadystate(XSS, XSSaggr, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par, d,
     CDF_SS, CDF_m, CDF_k, CDF_y, distrSS)
 
-Save global variables of steady state to files `steadystate.jld2`,`m_par.json` and `n_par.json`.
+Save global variables of steady state to files `Saves/steadystate.jld2`,`Saves/m_par.json` and `Saves/n_par.json`.
 """
-function save_steadystate(sr::SteadyResults)
-  save("Saves/steadystate.jld2",Dict(
+function save_steadystate(sr::SteadyResults;file="Saves")
+  save(string(file,"/steadystate.jld2"),Dict(
                                 "XSS" => sr.XSS,
                                 "XSSaggr" => sr.XSSaggr,
                                 "compressionIndexes" => sr.compressionIndexes,
@@ -113,7 +110,7 @@ function save_steadystate(sr::SteadyResults)
     ))
   structs = [:m_par,:n_par]
   for istr = 1:2
-    filestr = string("Saves/", String(structs[istr]),".json")
+    filestr = string(file,"/", String(structs[istr]),".json")
     if isfile(filestr)
       rm(filestr)
     end
@@ -131,14 +128,27 @@ Load global variables of steady state from files (filenames as in [`save_steadys
 # Returns
 same returns as [`find_SS()`](@ref)
 """
-function load_steadystate()
-  dictmpar = JSON.parsefile("Saves/m_par.json")
+function load_steadystate(;file="Saves",ModelParamStruct = ModelParameters)
+  dictmpar = JSON.parsefile(string(file,"/m_par.json"))
   mpairs = Array{Pair{Symbol,Any},1}()
   for (k,v) in dictmpar
     push!(mpairs,Pair{Symbol,Any}(Symbol(k),v))
   end
-  m_par = ModelParameters(;mpairs...)
-  dictnpar = JSON.parsefile("Saves/n_par.json")
+  m_par = ModelParamStruct(;mpairs...)
+  n_par = load_n_par(string(file,"/n_par.json"))
+  @load string(file,"/steadystate.jld2") XSS compressionIndexes d CDF_SS CDF_m CDF_k CDF_y distrSS
+  # produce indexes to access XSS etc.
+  indexes = produce_indexes(n_par, compressionIndexes[1], compressionIndexes[2])
+  indexes_aggr = produce_indexes_aggr(n_par)
+  XSSnew, XSSaggr_new = reorder_XSS(XSS,n_par.aggr_names,n_par.naggrstates,indexes,indexes_aggr)
+  Copula(x::Vector,y::Vector,z::Vector) = mylinearinterpolate3(CDF_m, CDF_k, CDF_y,
+                                                              CDF_SS, x, y, z)
+  return SteadyResults(XSSnew, XSSaggr_new, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par, d,
+  CDF_SS, CDF_m, CDF_k, CDF_y, distrSS)
+end
+
+function load_n_par(file)
+  dictnpar = JSON.parsefile(file)
   npairs = Array{Pair{Symbol,Any},1}()
   for (k,v) in dictnpar
     # Deal with Symbol-values (that are saved as Strings) and Array-values separately.
@@ -153,6 +163,8 @@ function load_steadystate()
                                sol_algo = Symbol(dictnpar["sol_algo"]),
                                aggr_names = dictnpar["aggr_names"],
                                bounds_y = dictnpar["bounds_y"],
+                               indexes_const = dictnpar["indexes_const"],
+                               indexes_constP = dictnpar["indexes_constP"],
                                npairs...
                              )
   # Deal with all complicated values manually.
@@ -166,15 +178,81 @@ function load_steadystate()
       (n_par.nm,n_par.nk,n_par.ny))
   @set! n_par.dist_guess = reshape(vcat(vcat(dictnpar["dist_guess"]...)...),
       (n_par.nm,n_par.nk,n_par.ny))
+  return n_par
+end
 
-  @load "Saves/steadystate.jld2" XSS XSSaggr compressionIndexes d CDF_SS CDF_m CDF_k CDF_y distrSS
-  # produce indexes to access XSS etc.
-  indexes = produce_indexes(n_par, compressionIndexes[1], compressionIndexes[2])
-  indexes_aggr = produce_indexes_aggr(n_par)
-  Copula(x::Vector,y::Vector,z::Vector) = mylinearinterpolate3(CDF_m, CDF_k, CDF_y,
-                                                              CDF_SS, x, y, z)
-  return SteadyResults(XSS, XSSaggr, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par, d,
-  CDF_SS, CDF_m, CDF_k, CDF_y, distrSS)
+@doc raw"""
+    reorder_XSS(oldXSS,aggr_names,n_states,indexesNew,indexes_aggrNew)
+
+Take steady state values from `oldXSS`, where aggregate variables
+are ordered as in `aggr_names`, and return
+vector of steady state values that conforms to ordering in
+`indexesNew`.
+"""
+function reorder_XSS(oldXSS,aggr_names,n_states,indexesNew,indexes_aggrNew)
+  n_controls = max(size(aggr_names)...) - n_states
+  state_names = aggr_names[1:n_states]
+  control_names = aggr_names[n_states+1:end]
+  ix_dist_end = indexesNew.distr_y_SS[end]
+  ix_V_end = indexesNew.VkSS[end]
+
+  XSS = zeros(ix_V_end + n_controls)
+  XSSaggr = zeros(n_states + n_controls)
+  XSS[1:ix_dist_end] = oldXSS[1:ix_dist_end]
+
+  for (i,s) in enumerate(state_names)
+    XSS[getfield(indexesNew,Symbol(s,"SS"))] = oldXSS[ix_dist_end+i]
+    XSSaggr[getfield(indexes_aggrNew,Symbol(s,"SS"))] = oldXSS[ix_dist_end+i]
+  end
+
+  XSS[[indexesNew.VmSS;indexesNew.VkSS]] = oldXSS[[indexesNew.VmSS;indexesNew.VkSS]]
+  
+  for (i,c) in enumerate(control_names)
+    XSS[getfield(indexesNew,Symbol(c,"SS"))] = oldXSS[ix_V_end+i]
+    XSSaggr[getfield(indexes_aggrNew,Symbol(c,"SS"))] = oldXSS[ix_V_end+i]
+  end
+
+  return XSS, XSSaggr
+end
+
+function update_XSS(oldXSS,indexesOld,newSSvals,state_names,control_names)
+  XSS = oldXSS[[indexesOld.distr_m_SS;indexesOld.distr_k_SS;indexesOld.distr_y_SS]]
+
+  for j in state_names
+      varnameSS = Symbol(j,"SS")
+      if in(varnameSS,keys(newSSvals))
+        val = newSSvals[varnameSS]
+      else
+        val = oldXSS[getfield(indexesOld,varnameSS)]
+      end
+      append!(XSS,val)
+  end
+
+  append!(XSS,oldXSS[[indexesOld.VmSS;indexesOld.VkSS]])
+
+  for j in control_names
+    varnameSS = Symbol(j,"SS")
+    if in(varnameSS,keys(newSSvals))
+      val = newSSvals[varnameSS]
+    else
+      val = oldXSS[getfield(indexesOld,varnameSS)]
+    end
+    append!(XSS,val)
+  end
+
+  XSSaggr = [0.0]
+  for j in [state_names;control_names]
+    varnameSS = Symbol(j,"SS")
+    if in(varnameSS,keys(newSSvals))
+      val = newSSvals[varnameSS]
+    else
+      val = oldXSS[getfield(indexesOld,varnameSS)]
+    end
+    append!(XSSaggr,val)
+  end
+  deleteat!(XSSaggr,1)
+
+  return XSS, XSSaggr
 end
 
 @doc raw"""
@@ -212,10 +290,10 @@ using [`SGU()`](@ref).
 - `State2Control::Array{Float64,2}`: observation equation
 - `LOMstate::Array{Float64,2}`: state transition equation
 """
-function linearize_full_model(sr::SteadyResults)
+function linearize_full_model(sr::SteadyResults;Fsys_agg::Function = Fsys_agg)
     A=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
     B=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
-    State2Control, LOMstate, SolutionError, nk, A, B = SGU(sr.XSS, copy(A), copy(B), sr.m_par, sr.n_par, sr.indexes, sr.Copula, sr.compressionIndexes, sr.distrSS; estim = false)
+    State2Control, LOMstate, SolutionError, nk, A, B = SGU(sr.XSS, copy(A), copy(B), sr.m_par, sr.n_par, sr.indexes, sr.Copula, sr.compressionIndexes, sr.distrSS; estim = false, Fsys_agg = Fsys_agg)
     return LinearResults(State2Control, LOMstate, A, B, SolutionError)
 end
 

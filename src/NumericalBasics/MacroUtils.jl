@@ -10,7 +10,7 @@ Equations take the form of (with variable `r` as example):
 """
 macro generate_equations(var_names)
     ex = quote end # initialize expression to append to
-    var_names=eval(var_names)
+    var_names=Base.eval(Main,var_names)
     for j in var_names # loop over variables to generate
         i = Symbol(j)
         varnamePrime = Symbol(i,"Prime")
@@ -34,10 +34,11 @@ Write all single steady state variables into vectors XSS / XSSaggr.
 # Requires
 globals `state_names`, `control_names`, `aggr_names`
 """
-macro writeXSS()
+macro writeXSS(state_names,control_names)
         ex = quote
                 XSS =   [ distr_m_SS[:];distr_k_SS[:]; distr_y_SS[:]]
         end
+        state_names = Base.eval(Main,state_names)
         for j in state_names
                 varnameSS = Symbol(j,"SS")
                 ex_aux = quote
@@ -50,6 +51,7 @@ macro writeXSS()
                 append!(XSS,[VmSS[:]; VkSS[:]]) # value function controls
         end
         append!(ex.args, ex_aux.args)
+        control_names = Base.eval(Main,control_names)
         for j in control_names
             varnameSS = Symbol(j,"SS")
             ex_aux = quote
@@ -59,7 +61,7 @@ macro writeXSS()
         end
         ex_aux= quote XSSaggr=[0.0] end
         append!(ex.args, ex_aux.args)
-        for j in aggr_names
+        for j in [state_names;control_names]
                 varnameSS = Symbol(j,"SS")
                 ex_aux = quote
                     append!(XSSaggr,log($varnameSS))

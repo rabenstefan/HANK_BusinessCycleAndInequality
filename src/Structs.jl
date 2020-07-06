@@ -216,7 +216,7 @@ Make `struct` `struct_name` with two fields for every variable name in `a_names`
 (for steady state value and for deviation from it).
 """
 macro make_struct_aggr(struct_name, a_names)
-	a_names=Symbol.(eval((a_names)))
+	a_names=Symbol.(Base.eval(Main,(a_names)))
 	n_states = length(a_names)
 
 	fields_states 	  = [:($(a_names[i])::Int) for i = 1:n_states]
@@ -237,9 +237,9 @@ and `c_names` (control variables), together with fields for distribution-states
 and marginal value function-controls.
 """
 macro make_struct(struct_name, s_names, c_names)
-	state_names=Symbol.(eval((s_names)))
+	state_names=Symbol.(Base.eval(Main,(s_names)))
 	n_states = length(state_names)
-	control_names=Symbol.(eval((c_names)))
+	control_names=Symbol.(Base.eval(Main,(c_names)))
 	n_controls = length(control_names)
 
 	fields_states 	  = [:($(state_names[i])::Int) for i = 1:n_states]
