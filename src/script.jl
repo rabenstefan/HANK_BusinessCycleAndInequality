@@ -1,7 +1,7 @@
-#include("input_aggregate_names.jl")
-include("input_aggregate_optional_names.jl")
-const state_names = [state_names_ess;state_names_opt]
-const control_names = [control_names_opt;control_names_ess]
+include("input_aggregate_names.jl")
+#include("input_aggregate_optional_names.jl")
+#const state_names = [state_names_ess;state_names_opt]
+#const control_names = [control_names_opt;control_names_ess]
 const aggr_names = [state_names;control_names]
 
 # make sure that your pwd is set to the folder containing script and HANKEstim
@@ -14,15 +14,15 @@ using HANKEstim, JLD2
 # save_steadystate(sr)
 sr = load_steadystate()
 
-lr = linearize_full_model(sr)
+#lr = linearize_full_model(sr)
 # @save "linearresults.jld2" lr
-#@load "Saves/linearresults.jld2"
+@load "Saves/linearresults.jld2"
 
 # warning: estimation might take a long time!
 # er = find_mode(sr,lr)
-# @save "estimresults.jld2" er
-# @load "estimresults.jld2"
-# montecarlo(sr,lr,er)
+# @save "Saves/estimresults.jld2" er
+@load "Saves/estimresults.jld2"
+montecarlo(sr,lr,er)
 
 # plot some irfs to tfp (z) shock
 # using LinearAlgebra, Plots

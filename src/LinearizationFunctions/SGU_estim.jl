@@ -47,12 +47,12 @@ function SGU_estim(XSSaggr::Array, A::Array, B::Array,
     prime_loop_estim!(Ad, DerivPrime, length_X0, n_par,n_FD)
     loop_estim!(Bd, Deriv, length_X0, n_par,n_FD)
 
-    for k = 1:length(aggr_names)
-        if !(any(distr_names.==aggr_names[k]))
-            j = getfield(indexes, Symbol(aggr_names[k]))
-            for h = 1:length(aggr_names)
-                if !(any(distr_names.==aggr_names[h]))
-                    i = getfield(indexes, Symbol(aggr_names[h]))
+    for k = 1:length(n_par.aggr_names)
+        if !(any(distr_names.==n_par.aggr_names[k]))
+            j = getfield(indexes, Symbol(n_par.aggr_names[k]))
+            for h = 1:length(n_par.aggr_names)
+                if !(any(distr_names.==n_par.aggr_names[h]))
+                    i = getfield(indexes, Symbol(n_par.aggr_names[h]))
                     A[j,i] = Ad[k,h]
                     B[j,i] = Bd[k,h]
                 end

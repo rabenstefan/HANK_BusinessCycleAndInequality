@@ -321,7 +321,7 @@ function load_mode(sr::SteadyResults;file::String = e_set.mode_start_file)
     # Load data
     Data_temp = CSV.read(e_set.data_file; missingstring="NaN")
     data_names_temp = names(Data_temp)
-    for i in data_names_temp
+    for i in Symbol.(data_names_temp)
       name_temp = get(e_set.data_rename, i, :none)
       if name_temp == :none
 
@@ -393,7 +393,7 @@ function montecarlo(sr::SteadyResults,lr::LinearResults, er::EstimResults;file::
     end
 
     # need to ] add MCMCChains#master to get the sorted keyword
-    chn = Chains(reshape(draws, (size(draws)...,1)), [string(parnames_ascii[i]) for i = 1:length(parnames_ascii)], sorted=false)
+    chn = Chains(reshape(draws, (size(draws)...,1)), [string(parnames_ascii[i]) for i = 1:length(parnames_ascii)])
     chn_summary = summarize(chn)
     par_final = chn_summary[:,:mean];
 
@@ -411,25 +411,16 @@ function montecarlo(sr::SteadyResults,lr::LinearResults, er::EstimResults;file::
     save(file,Dict(
                     "draws_raw" => draws_raw,
                     "accept_rate" => accept_rate,
-                    "aggr_names_ascii" => aggr_names_ascii,
-                    "aggr_names" => aggr_names,
-                    "state_names_ascii" => state_names_ascii,
-                    "state_names" => state_names,
-                    "control_names" => control_names,
-                    "control_names_ascii" => control_names_ascii,
+                    "aggr_names" => sr.n_par.aggr_names,
                     "e_set" => e_set,
                     "Data" => er.Data,
                     "State2Control" => State2Control,
                     "LOMState" => LOMstate,
                     "parnames" => er.parnames,
-                    "indexes" => sr.indexes,
-                    "indexes_aggr" => sr.indexes_aggr,
                     "par_final" => par_final,
-                    "m_par" => m_par,
                     "A" => lr.A,
                     "B" => lr.B,
                     "hessian_sym" => hessian_sym,
-                    "n_par" => sr.n_par,
                     "draws" => draws,
                     "posterior" => posterior,
                     "hessian_final" => er.hessian_final,
@@ -440,6 +431,16 @@ function montecarlo(sr::SteadyResults,lr::LinearResults, er::EstimResults;file::
                     "priors" => er.priors,
                     "smoother_output" => smoother_output
     ))
+    structs = [:m_par,:n_par]
+    for istr = 1:2
+      filestr = string("Saves/", String(structs[istr]),"_post.json")
+      if isfile(filestr)
+        rm(filestr)
+      end
+      open(filestr,"w") do f
+        JSON.print(f,getfield(sr,structs[istr]),4)
+      end
+    end
 end
 
 end # module HANKEstim

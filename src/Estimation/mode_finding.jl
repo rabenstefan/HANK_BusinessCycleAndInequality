@@ -22,7 +22,7 @@ function mode_finding(XSSaggr, A, B, indexes, indexes_aggr, Copula,distrSS, comp
   # Load data
   Data_temp = CSV.read(e_set.data_file; missingstring = "NaN")
   data_names_temp = names(Data_temp)
-  for i in data_names_temp
+  for i in Symbol.(data_names_temp)
     name_temp = get(e_set.data_rename, i, :none)
     if name_temp == :none
 
@@ -104,11 +104,11 @@ function mode_finding(XSSaggr, A, B, indexes, indexes_aggr, Copula,distrSS, comp
  Copula,distrSS, compressionIndexes, priors, meas_error, meas_error_std; smoother = true)
 
  par_mode = par_final
- @save e_set.save_mode_file par_final posterior_mode meas_error meas_error_std parnames Data Data_missing H_sel priors smoother_output State2Control LOMstate indexes indexes_aggr m_par n_par e_set
+ @save e_set.save_mode_file par_final posterior_mode meas_error meas_error_std parnames Data Data_missing H_sel priors smoother_output State2Control LOMstate e_set
 
  hessian_final = Optim.hessian!(func, parhat_newton)
 
- @save e_set.save_mode_file par_final hessian_final posterior_mode meas_error meas_error_std parnames Data Data_missing H_sel priors smoother_output State2Control LOMstate indexes indexes_aggr m_par n_par e_set
+ @save e_set.save_mode_file par_final hessian_final posterior_mode meas_error meas_error_std parnames Data Data_missing H_sel priors smoother_output State2Control LOMstate e_set
 
 
 return par_final, hessian_final, posterior_mode, meas_error, meas_error_std, parnames, Data, Data_missing, H_sel, priors

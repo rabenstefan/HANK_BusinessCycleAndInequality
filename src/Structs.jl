@@ -173,11 +173,11 @@ stored in the fields `mode_start_file`, `data_file`, `save_mode_file` and `save_
 @with_kw struct EstimationSettings
 	shock_names::Array{Symbol, 1} = [:A, :Z, :ZI, :μ, :μw, :Gshock, :Rshock, :Sshock, :Tlevshock, :Tprogshock]
 	# comment in/out lines 166/167 depending on whether you estimate with or without inequality data
-	# observed_vars_input::Array{Symbol, 1} = [:Ygrowth, :Igrowth, :wgrowth,  :N, :RB, :Cgrowth, :π, :σ, :Tgrowth, :τobs1, :w90share, :I90share]
-	observed_vars_input::Array{Symbol, 1} = [:Ygrowth, :Igrowth, :Cgrowth, :N, :wgrowth, :RB,  :π, :σ, :Tgrowth, :τprog_obs]
+	observed_vars_input::Array{Symbol, 1} = [:Ygrowth, :Igrowth, :wgrowth,  :N, :RB, :Cgrowth, :π, :σ, :Tgrowth, :τprog_obs, :w90share, :I90share]
+	# observed_vars_input::Array{Symbol, 1} = [:Ygrowth, :Igrowth, :Cgrowth, :N, :wgrowth, :RB,  :π, :σ, :Tgrowth, :τprog_obs]
 
 	data_rename::Dict{Symbol,Symbol} = Dict(
-	:pi=>:π, :sigma2=>:σ, :tauprog_obs=>:τprog_obs
+	:pi=>:π, :sigma2=>:σ, :tauprog_obs=>:τprog_obs, :tauobs1 => :τobs1
 	)
 
 	growth_rate_select::Array{Bool, 1} = repeat([false], length(observed_vars_input))
@@ -185,24 +185,24 @@ stored in the fields `mode_start_file`, `data_file`, `save_mode_file` and `save_
 	me_std_cutoff::Float64 = 0.2
 
 	# comment in/out lines 178-184 depending on whether you estimate with or without inequality data
-	# meas_error_input::Array{Symbol, 1} = [ :σ, :Tgrowth, :τobs1, :w90share, :I90share]
-	# meas_error_distr::Array{InverseGamma{Float64}, 1} = [InverseGamma(ig_pars(0.05, 0.1^2)...),InverseGamma(ig_pars(0.0005, 0.001^2)...),
-	# InverseGamma(ig_pars(0.0005, 0.001^2)...),InverseGamma(ig_pars(0.0005, 0.001^2)...), InverseGamma(ig_pars(0.0005, 0.001^2)...)]
-
-	meas_error_input::Array{Symbol, 1} = [ :σ, :Tgrowth, :τprog_obs]
+	meas_error_input::Array{Symbol, 1} = [ :σ, :Tgrowth, :τprog_obs, :w90share, :I90share]
 	meas_error_distr::Array{InverseGamma{Float64}, 1} = [InverseGamma(ig_pars(0.05, 0.1^2)...),InverseGamma(ig_pars(0.0005, 0.001^2)...),
-	InverseGamma(ig_pars(0.0005, 0.001^2)...)]
+	InverseGamma(ig_pars(0.0005, 0.001^2)...),InverseGamma(ig_pars(0.0005, 0.001^2)...), InverseGamma(ig_pars(0.0005, 0.001^2)...)]
 
-	mode_start_file::String = "Saves/hank_2asset_mcmc_1901_baseline_chain_all_commit.jld2"
+	# meas_error_input::Array{Symbol, 1} = [ :σ, :Tgrowth, :τprog_obs]
+	# meas_error_distr::Array{InverseGamma{Float64}, 1} = [InverseGamma(ig_pars(0.05, 0.1^2)...),InverseGamma(ig_pars(0.0005, 0.001^2)...),
+	# InverseGamma(ig_pars(0.0005, 0.001^2)...)]
 
-	data_file::String = "bbl_data_inequality.csv"
+	mode_start_file::String = "Saves/mode_start_file_inequ.jld2"
+
+	data_file::String = "bbl_data_inequality_merged.csv"
 	save_mode_file::String = "Saves/hank_2asset_mode_1202_baseline.jld2"
 	save_posterior_file::String = "Saves/hank_2asset_mcmc_1202_baseline.jld2"
 
 	fd_flag::Bool = any(growth_rate_select)
 	max_iter_mode::Int = 60
-	ndraws::Int      = 60
-	burnin::Int      = 10
+	ndraws::Int      = 3000
+	burnin::Int      = 1000
 	mhscale::Float64 = 0.375
 	debug_print::Bool = true
 	mode_compute::Bool = true
