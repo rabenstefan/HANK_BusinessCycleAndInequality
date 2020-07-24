@@ -34,11 +34,11 @@ function Fsys_agg(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}
     return F
 end
 
-function tot_dual(x::ForwardDiff.Dual)
+function tot_dual(x::Union{ForwardDiff.Dual,Float64})
     a = sum(ForwardDiff.partials(x,:))
     return a
 end
-function realpart(x::ForwardDiff.Dual)
+function realpart(x::Union{ForwardDiff.Dual,Float64})
     a = ForwardDiff.value(x)
     return a
 end

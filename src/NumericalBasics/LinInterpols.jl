@@ -36,6 +36,8 @@ function mylinearinterpolate_mult2(xgrd::AbstractVector,#Union{AbstractArray{Flo
     xeval::AbstractVector)#Union{AbstractArray{Float64,1},AbstractArray{DualNumbers.Dual{Float64},1}})
     yeval1= Array{eltype(ygrd1),1}(undef,length(xeval))
     yeval2= Array{eltype(ygrd1),1}(undef,length(xeval))
+    left_weight = Array{eltype(ygrd1),1}(undef,length(xeval))
+    left_ind = Array{Int,1}(undef,length(xeval))
 
     n_xgrd = length(xgrd)
     @views @inbounds begin
@@ -51,6 +53,8 @@ function mylinearinterpolate_mult2(xgrd::AbstractVector,#Union{AbstractArray{Flo
         iR = iL+1
         xL = xgrd[iL]
         wR = (xeval[i] .- xL)./ (xgrd[iR] .- xL)
+        left_weight[i] = 1.0 - wR
+        left_ind[i] = iL
         #wL = 1.0-wR
         y1L = ygrd1[iL]
         y2L = ygrd2[iL]
@@ -58,7 +62,7 @@ function mylinearinterpolate_mult2(xgrd::AbstractVector,#Union{AbstractArray{Flo
         yeval2[i] = y2L .+ wR .* (ygrd2[iR] - y2L)
     end
 end
-    return yeval1, yeval2
+    return yeval1, yeval2, left_weight, left_ind
 end
 
 # of three functions on the same grids
@@ -71,6 +75,8 @@ function mylinearinterpolate_mult3(xgrd::AbstractVector,#Union{AbstractArray{Flo
     yeval1= Array{eltype(ygrd1),1}(undef,length(xeval))
     yeval2= Array{eltype(ygrd2),1}(undef,length(xeval))
     yeval3= Array{eltype(ygrd3),1}(undef,length(xeval))
+    left_weight = Array{eltype(ygrd3),1}(undef,length(xeval))
+    left_ind = Array{Int,1}(undef,length(xeval))
 
     n_xgrd = length(xgrd)
     for i in eachindex(xeval)
@@ -85,6 +91,8 @@ function mylinearinterpolate_mult3(xgrd::AbstractVector,#Union{AbstractArray{Flo
         iR = iL+1
         xL = xgrd[iL]
         wR = (xi .- xL)./ (xgrd[iR] .- xL)
+        left_weight[i] = 1.0 - wR
+        left_ind[i] = iL
         y1L = ygrd1[iL]
         y2L = ygrd2[iL]
         y3L = ygrd3[iL]
@@ -92,7 +100,7 @@ function mylinearinterpolate_mult3(xgrd::AbstractVector,#Union{AbstractArray{Flo
         yeval2[i] = y2L .+ wR .* (ygrd2[iR] - y2L)
         yeval3[i] = y3L .+ wR .* (ygrd3[iR] - y3L)
     end
-    return yeval1, yeval2, yeval3
+    return yeval1, yeval2, yeval3, left_weight, left_ind
 end
 
 #---------------- Billinear interpolation -------------------------------------

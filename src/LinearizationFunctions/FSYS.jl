@@ -28,7 +28,7 @@ julia> Fsys(zeros(ntotal),zeros(ntotal),XSS,m_par,n_par,indexes,Γ,compressionIn
 function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par,
               n_par::NumericalParameters, indexes, Γ::Array{Array{Float64,2},1},
               compressionIndexes::Array{Array{Int,1},1}, DC::Array{Array{Float64,2},1},
-              IDC::Array{Adjoint{Float64,Array{Float64,2}},1}, Copula::Function;Fsys_agg::Function = Fsys_agg)
+              IDC::Array{Adjoint{Float64,Array{Float64,2}},1}, Copula::Function;Fsys_agg::Function = Fsys_agg,ret_pol_fcts = false)
               # The function call with Duals takes
               # Reserve space for error terms
     F = zeros(eltype(X),size(X))
@@ -167,9 +167,11 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
         end
     end
     # roughly 20% time
-    c_a_star, m_a_star, k_a_star, c_n_star, m_n_star =
+    c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid =
                     EGM_policyupdate(EVmPrime ,EVkPrime ,q,π,RB.*A,1.0,inc,n_par,m_par, false) # policy iteration
-
+    if(ret_pol_fcts)
+        return c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid, inc, incgross
+    end
     # roughly 10% time
     # Update marginal values
     Vk_new,Vm_new = updateV(EVkPrime ,c_a_star, c_n_star, m_n_star, r - 1.0, q, m_par, n_par, Π) # update expected marginal values time t
