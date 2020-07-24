@@ -146,8 +146,8 @@ F[indexes.profits] = log.(profits) - log.(Y * (1.0 - mc))     # profits: + price
 
 
 F[indexes.q]    = 1.0 - ZI * q * (1.0 - m_par.ϕ / 2.0 * (Igrowth - 1.0)^2.0 - # price of capital investment adjustment costs
-                   m_par.ϕ * (Igrowth - 1.0) * Igrowth)  -
-                   m_par.β * ZIPrime * qPrime * m_par.ϕ * (IgrowthPrime - 1.0) * (IgrowthPrime)^2.0
+                   m_par.ϕ * (Igrowth - 1.0) )  -
+                   m_par.β * ZIPrime * qPrime * m_par.ϕ * (IgrowthPrime - 1.0)
 
 # Aggregate Quantities
 F[indexes.I]   = KPrime .-  K .* (1.0 .- depr)  .- ZI .* I .* (1.0 .- m_par.ϕ ./ 2.0 .* (Igrowth -1.0).^2.0) # Capital accumulation equation
