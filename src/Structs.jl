@@ -201,8 +201,8 @@ stored in the fields `mode_start_file`, `data_file`, `save_mode_file` and `save_
 
 	fd_flag::Bool = any(growth_rate_select)
 	max_iter_mode::Int = 60
-	ndraws::Int      = 3000
-	burnin::Int      = 1000
+	ndraws::Int      = 6000
+	burnin::Int      = 2000
 	mhscale::Float64 = 0.375
 	debug_print::Bool = true
 	mode_compute::Bool = true

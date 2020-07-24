@@ -19,7 +19,7 @@ sr = load_steadystate()
 @load "Saves/linearresults.jld2"
 
 # warning: estimation might take a long time!
-# er = find_mode(sr,lr)
+#er = find_mode(sr,lr)
 # @save "Saves/estimresults.jld2" er
 @load "Saves/estimresults.jld2"
 montecarlo(sr,lr,er)

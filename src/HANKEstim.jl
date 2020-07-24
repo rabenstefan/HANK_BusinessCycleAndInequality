@@ -26,7 +26,7 @@ export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, 
         load_steadystate, save_steadystate, compute_steadystate, SteadyResults,
         Tauchen, EGM_policyupdate, Kdiff, distrSummaries, @generate_equations,
         @make_deriv, @make_deriv_estim, prioreval, load_n_par, update_XSS, @include,
-        employment, output, wage
+        employment, output, wage, shuffleMatrix, mydctmx, mutil
 
 distr_names=["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share",
 "I90sharenet", "P9010I", "w90share", "P10C", "P50C", "P90C"]
@@ -431,15 +431,12 @@ function montecarlo(sr::SteadyResults,lr::LinearResults, er::EstimResults;file::
                     "priors" => er.priors,
                     "smoother_output" => smoother_output
     ))
-    structs = [:m_par,:n_par]
-    for istr = 1:2
-      filestr = string("Saves/", String(structs[istr]),"_post.json")
-      if isfile(filestr)
-        rm(filestr)
-      end
-      open(filestr,"w") do f
-        JSON.print(f,getfield(sr,structs[istr]),4)
-      end
+    filestr = "Saves/m_par_post.json"
+    if isfile(filestr)
+      rm(filestr)
+    end
+    open(filestr,"w") do f
+      JSON.print(f,m_par,4)
     end
 end
 

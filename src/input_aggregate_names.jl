@@ -1,5 +1,3 @@
-# Collect essential aggregate states and controls, i.e. those that are needed in heterogeneous agent part.
-
 state_names=["A", "Z", "ZI", "RB" , "μ","μw", "σ", "Ylag", "Blag", "Zlag", "Tlag",
 "Glag", "Ilag", "wlag", "qlag", "Nlag", "Clag", "πlag", "σlag", "rlag", "RBlag",
 "av_tax_ratelag", "τproglag", "mcwwlag", "Gshock", "Tlevshock", "Tprogshock", "Rshock", "Sshock"]
