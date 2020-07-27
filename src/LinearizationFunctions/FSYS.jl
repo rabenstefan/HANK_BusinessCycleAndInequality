@@ -150,11 +150,6 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     incgross[1][:,:,end].= (n_par.mesh_y[:,:,end] .* profits)
     incgross[5][:,:,end].= (n_par.mesh_y[:,:,end] .* profits)
 
-    taxrev = incgross[5]-inc[6] # tax revenues w/o tax on union profits
-    incgrossaux = incgross[5]
-    F[indexes.τlev] = av_tax_rate - (distr[:]' * taxrev[:])./(distr[:]' * incgrossaux[:])
-    F[indexes.T]    = log(T) - log(distr[:]' * taxrev[:] + av_tax_rate*((1.0 .- mcw).*w.*N))
-
     # Calculate optimal policies
     # expected margginal values
     EVkPrime = reshape(VkPrime,(n_par.nm,n_par.nk, n_par.ny))
