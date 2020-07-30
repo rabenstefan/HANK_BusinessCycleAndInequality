@@ -140,6 +140,8 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     inc[1][:,:,end].= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0-τprog) # profit income net of taxes
     inc[5][:,:,end].= 0.0
     inc[6][:,:,end].= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0-τprog) # profit income net of taxes
+    # Rebate government spending lump-sum to all households
+    inc[1] .= inc[1] .+ G
 
     incgross =[  ((n_par.mesh_y/H).^tax_prog_scale .*mcw.*w.*N./(Ht)).+
             ((1.0 .- mcw).*w.*N),
