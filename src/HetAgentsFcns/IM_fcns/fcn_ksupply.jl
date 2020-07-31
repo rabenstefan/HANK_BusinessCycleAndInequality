@@ -24,7 +24,7 @@ Idiosyncratic state is tuple ``(m,k,y)``, where
     without [`n`] adjustment of illiquid asset
 - `V_m`,`V_k`: marginal value functions
 """
-function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_guess::Float64, n_par::NumericalParameters, m_par::ModelParameters)
+function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_guess::Float64,B_guess,n_par::NumericalParameters, m_par::ModelParameters)
     #----------------------------------------------------------------------------
     # Initialize policy function guess
     #----------------------------------------------------------------------------
@@ -34,20 +34,22 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
     Paux    = n_par.Π^1000
     distr_y = Paux[1,:]
 
-    inc = Array{Array{Float64,3}}(undef,4)
     mcw = 1.0 ./ m_par.μw
-
     # labor income
+    inc = Array{Array{Float64,3}}(undef,4)
     incgross = n_par.grid_y .* mcw.*w_guess
     incgross[end]= n_par.grid_y[end]*profit_guess
     incnet   = m_par.τ_lev.*(mcw.*w_guess.*n_par.grid_y).^(1.0-m_par.τ_prog)
     incnet[end]= m_par.τ_lev.*(n_par.grid_y[end] .* profit_guess).^(1.0-m_par.τ_prog)
     av_tax_rate = dot((incgross - incnet),distr_y)./dot((incgross),distr_y)
+    TSS           = (dot((incgross - incnet),distr_y) + av_tax_rate*((1.0 .- mcw).*w_guess.*H))
+    GSS           = TSS - (RB_guess-1.0)*B_guess
 
     GHHFA=((m_par.γ - m_par.τ_prog)/(m_par.γ+1)) # transformation (scaling) for composite good
     inc[1] = GHHFA.*m_par.τ_lev.*(n_par.mesh_y.*mcw.*w_guess).^(1.0-m_par.τ_prog) .+
-             (1.0 .- mcw).*w_guess*n_par.H.*(1.0 .- av_tax_rate)# labor income net of taxes
+            (1.0 .- mcw).*w_guess*n_par.H.*(1.0 .- av_tax_rate)# labor income net of taxes
     inc[1][:,:,end]= m_par.τ_lev.*(n_par.mesh_y[:,:,end]*profit_guess).^(1.0-m_par.τ_prog) # profit income net of taxes
+    inc[1] .= inc[1] .+ GSS
     # rental income
     inc[2] = (R_guess-1.0).* n_par.mesh_k
     # liquid asset Income
@@ -135,5 +137,6 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
     #-----------------------------------------------------------------------------
     K = sum(distr[:] .* n_par.mesh_k[:])
     B = sum(distr[:] .* n_par.mesh_m[:])
+
     return K, B, TransitionMat, TransitionMat_a, TransitionMat_n, distr, c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, Vm, Vk
 end

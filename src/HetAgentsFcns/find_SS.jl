@@ -14,14 +14,14 @@ Find the stationary equilibrium using a final resolution of `refined_ny` for inc
 - `distrSS::Array{Float64,3}`: steady state distribution of idiosyncratic states, computed by [`Ksupply()`](@ref)
 - `CDF_SS`, `CDF_m`, `CDF_k`, `CDF_y`: cumulative distribution functions (joint and marginals)
 """
-function find_SS()
+function find_SS(state_names,control_names)
 
 BLAS.set_num_threads(Threads.nthreads())
 
 # global m_par, n_par, CDF_m, CDF_k, CDF_y
 # load estimated parameter set
 m_par           = ModelParameters( )
-@load e_set.mode_start_file par_final parnames
+@load e_set.save_posterior_file par_final parnames
 par = par_final[1:length(parnames)]
 if e_set.me_treatment != :fixed
   m_par = Flatten.reconstruct(m_par, par[1:length(par) - length(e_set.meas_error_input)])
@@ -66,22 +66,38 @@ Kmax      = 2.0 * ((m_par.δ_0 - 0.0025 + (1.0 - m_par.β) / m_par.β) / m_par.�
 Kmin      = 1.0 * ((m_par.δ_0 - 0.0005 + (1.0 - m_par.β) / m_par.β) / m_par.α)^(0.5 / (m_par.α - 1.0))
 K         = range(Kmin, stop = Kmax, length = 8)
 # a.) Define excess demand function
-d(K)      = Kdiff(K,n_par,m_par)
+BKratioSS = 0.14 # take from SS without balanced budget
+d(K;BKratio=BKratioSS)      = Kdiff(K,n_par,m_par,BKratio)
 
 # b.) Find equilibrium capital stock (multigrid on y)
 # ba.) initial calculation
-KSS       = Brent(d, Kmin, Kmax)[1]
+distB = 9999.0
+KSS = 1.0
+println("First loop BKratio")
+while distB > n_par.ϵ
+        d_new(K) = d(K;BKratio = BKratioSS)
+        KSS       = Brent(d_new, Kmin, Kmax)[1]
 
-# c.) Calculate other equilibrium quantities
+        # c.) Calculate other equilibrium quantities
+        NSS       = employment(KSS, 1.0 ./ (m_par.μ*m_par.μw), m_par)
+        rSS       = interest(KSS,1.0 / m_par.μ, NSS, m_par)
+        wSS       = wage(KSS,1.0 / m_par.μ, NSS , m_par)
+        YSS       = output(KSS,1.0,NSS, m_par)
+        ProfitsSS = (1.0 -1.0 / m_par.μ).*YSS
+
+        KSS, BSS =  Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,BKratioSS*KSS,n_par,m_par)
+        distB = abs(BSS/KSS - BKratioSS)
+        println(string("distB: ",distB))
+        BKratioSS = BSS/KSS
+end
 NSS       = employment(KSS, 1.0 ./ (m_par.μ*m_par.μw), m_par)
 rSS       = interest(KSS,1.0 / m_par.μ, NSS, m_par)
 wSS       = wage(KSS,1.0 / m_par.μ, NSS , m_par)
 YSS       = output(KSS,1.0,NSS, m_par)
 ProfitsSS = (1.0 -1.0 / m_par.μ).*YSS
-
 KSS, BSS, TransitionMatSS, TransitionMat_aSS, TransitionMat_nSS, distrSS,
-        c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-        Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
+                c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
+                Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,BKratioSS*KSS,n_par,m_par)
 
 ## bb.) refinement
 ny              = n_par.ny_refined; # eigs in Ksupply quickly increases in runtime in ny
@@ -102,11 +118,11 @@ H               = (Paux[1,1:end-1]'*grid_y[1:end-1])
 
 # Write changed parameter values to n_par
 @set! n_par.ny          = ny + 1
-@set! n_par.nstates     = (ny + 1) + n_par.nk + n_par.nm + length(state_names_all) - 3
-@set! n_par.naggrstates = length(state_names_all)
-@set! n_par.naggrcontrols = length(control_names_all)
-@set! n_par.aggr_names  = [state_names_all; control_names_all]
-@set! n_par.naggr       = length(aggr_names_all)
+@set! n_par.nstates     = (ny + 1) + n_par.nk + n_par.nm + length(state_names) - 3
+@set! n_par.naggrstates = length(state_names)
+@set! n_par.naggrcontrols = length(control_names)
+@set! n_par.aggr_names  = [state_names;control_names]
+@set! n_par.naggr       = length(n_par.aggr_names)
 
 @set! n_par.bounds_y    = bounds
 @set! n_par.ϵ           = 1e-10
@@ -120,18 +136,32 @@ H               = (Paux[1,1:end-1]'*grid_y[1:end-1])
 @set! n_par.H           = H
 @set! n_par.dist_guess  = refined_dist
 
-KSS                     = Brent(d, KSS*.9, KSS*1.2)[1]
+distB = 9999.0
+println("Second loop BKratio")
+while distB > n_par.ϵ
+        d_new(K) = d(K;BKratio=BKratioSS)
+        KSS                     = Brent(d_new, KSS*.9, KSS*1.2)[1]
 
-# c.) Calculate other equilibrium quantities
+        # c.) Calculate other equilibrium quantities
+        NSS                     = employment(KSS, 1.0 ./ (m_par.μ*m_par.μw), m_par)
+        rSS                     = interest(KSS,1.0 / m_par.μ, NSS, m_par)
+        wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
+        YSS                     = output(KSS,1.0,NSS, m_par)
+        ProfitsSS               = (1.0 -1.0 / m_par.μ).*YSS
+
+        KSS, BSS = Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,KSS*BKratioSS,n_par,m_par)
+        distB = abs(BSS/KSS - BKratioSS)
+        println(string("dist: ",distB))
+        BKratioSS = BSS/KSS
+end
 NSS                     = employment(KSS, 1.0 ./ (m_par.μ*m_par.μw), m_par)
 rSS                     = interest(KSS,1.0 / m_par.μ, NSS, m_par)
 wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
 YSS                     = output(KSS,1.0,NSS, m_par)
 ProfitsSS               = (1.0 -1.0 / m_par.μ).*YSS
-
 KSS, BSS, TransitionMatSS, TransitionMat_aSS, TransitionMat_nSS, distrSS,
-        c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-        Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
+                c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
+                Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,KSS*BKratioSS,n_par,m_par)
 
 VmSS                    = log.(VmSS)
 VkSS                    = log.(VkSS)
@@ -173,6 +203,7 @@ inc[1][:,:,end].= m_par.τ_lev.*(n_par.mesh_y[:,:,end] .* ProfitsSS).^(1.0-m_par
 
 TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))
 GSS           = TSS - (m_par.RB./m_par.π-1.0)*BSS
+inc[1] .= inc[1] .+ GSS
 
 distr_m_SS, distr_k_SS, distr_y_SS, share_borrowerSS, GiniWSS, I90shareSS,I90sharenetSS, GiniXSS,
         sdlogxSS, P9010CSS, GiniCSS, sdlgCSS, P9010ISS, GiniISS, sdlgISS, w90shareSS, P10CSS, P50CSS, P90CSS =
