@@ -10,7 +10,7 @@ const aggr_names = [state_names;control_names]
 push!(LOAD_PATH, pwd())
 using HANKEstim, JLD2
 
-# sr = compute_steadystate()
+# sr = compute_steadystate(state_names,control_names)
 # save_steadystate(sr)
 sr = load_steadystate()
 

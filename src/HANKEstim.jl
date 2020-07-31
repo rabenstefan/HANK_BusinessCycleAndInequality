@@ -263,9 +263,9 @@ Compute steady state.
 # Returns
 `struct` `SteadyResults`, containing returns of [`find_SS()`](@ref)
 """
-function compute_steadystate()
+function compute_steadystate(state_names,control_names)
   XSS, XSSaggr, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par, d,
-  CDF_SS, CDF_m, CDF_k, CDF_y, distrSS  = find_SS()
+  CDF_SS, CDF_m, CDF_k, CDF_y, distrSS  = find_SS(state_names,control_names)
   # Convention: profits is the last control in the list of control variables
   ntotal                  = indexes.profits
   @set! n_par.ntotal      = ntotal

@@ -185,11 +185,11 @@ stored in the fields `mode_start_file`, `data_file`, `save_mode_file` and `save_
 	me_std_cutoff::Float64 = 0.2
 
 	# comment in/out lines 178-184 depending on whether you estimate with or without inequality data
-	meas_error_input::Array{Symbol, 1} = [ :σ, :Tgrowth, :τprog_obs, :w90share, :I90share]
+	#meas_error_input::Array{Symbol, 1} = [ :σ, :Tgrowth, :τprog_obs, :w90share, :I90share]
 	meas_error_distr::Array{InverseGamma{Float64}, 1} = [InverseGamma(ig_pars(0.05, 0.1^2)...),InverseGamma(ig_pars(0.0005, 0.001^2)...),
 	InverseGamma(ig_pars(0.0005, 0.001^2)...),InverseGamma(ig_pars(0.0005, 0.001^2)...), InverseGamma(ig_pars(0.0005, 0.001^2)...)]
 
-	# meas_error_input::Array{Symbol, 1} = [ :σ, :Tgrowth, :τprog_obs]
+	meas_error_input::Array{Symbol, 1} = [ :σ, :Tgrowth, :τprog_obs]
 	# meas_error_distr::Array{InverseGamma{Float64}, 1} = [InverseGamma(ig_pars(0.05, 0.1^2)...),InverseGamma(ig_pars(0.0005, 0.001^2)...),
 	# InverseGamma(ig_pars(0.0005, 0.001^2)...)]
 
