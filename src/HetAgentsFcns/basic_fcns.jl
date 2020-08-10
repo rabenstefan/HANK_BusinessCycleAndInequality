@@ -36,12 +36,7 @@ function distrSummaries(distr::AbstractArray,c_a_star::AbstractArray,
                         c_n_star::AbstractArray, n_par::NumericalParameters,
                         inc::AbstractArray,incgross::AbstractArray, m_par)
     ## Distributional summaries
-    mplusk = zeros(n_par.nk.*n_par.nm)
-    for k = 1:n_par.nk
-        for m = 1:n_par.nm
-            mplusk[m+(k-1)*n_par.nm] = n_par.grid_m[m]+n_par.grid_k[k];
-        end
-    end
+    mplusk = (n_par.mesh_m[:,:,1] + inc[4][:,:,1])[:]
     IX=sortperm(mplusk)
     mplusk          = mplusk[IX]
     moneycapital_pdf= sum(distr, dims=3)
