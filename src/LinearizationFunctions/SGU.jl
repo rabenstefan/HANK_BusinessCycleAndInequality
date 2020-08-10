@@ -29,7 +29,7 @@ given by `global` `n_FD`. Make use of model knowledge to set some entries manual
     `XPrime` [`A`]
 """
 function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
-    indexes, Copula::Function, compressionIndexes::Array{Array{Int,1},1}, distrSS::Array{Float64,3}; estim=false,Fsys_agg::Function = Fsys_agg)
+    indexes, Copula::Function, compressionIndexes::Array{Array{Int,1},1}, distrSS::Array{Float64,3}; estim=false,Fsys_agg::Function = Fsys_agg,balanced_budget=false)
     ############################################################################
     # Prepare elements used for uncompression
     ############################################################################
@@ -61,7 +61,7 @@ function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
     @set! n_par.nstates_redP = n_par.naggrstates
     @set! n_par.ncontrols_redP = n_par.ncontrols
     # Differentiate
-    F(x,xp) = Fsys_wrap(x,xp,XSS,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg)
+    F(x,xp) = Fsys_wrap(x,xp,XSS,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg,balanced_budget=balanced_budget)
     #BLAS.set_num_threads(1)
     builtin_FO_SO!(F3,F1,F4,F2,H,F,n_par;chunksize=19);
     # Trim FO derivatives by deleting row/column of permutation parameter
@@ -172,7 +172,7 @@ end
 
 function Fsys_wrap(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par,
     n_par::NumericalParameters, indexes, Γ, compressionIndexes::Array{Array{Int,1},1},
-    DC,IDC,Copula::Function;Fsys_agg::Function=Fsys_agg)
+    DC,IDC,Copula::Function;Fsys_agg::Function=Fsys_agg,balanced_budget=false)
     # Assume that permutation parameter is positioned at end of states,
     # leave variables with constant derivatives as zeros.
     ix_all = [i for i=1:n_par.ntotal]
@@ -182,7 +182,7 @@ function Fsys_wrap(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1
     XPr_old = zeros(eltype(XPrime),n_par.ntotal)
     XPr_old[setdiff(ix_all,n_par.indexes_constP)] = [XPrime[1:n_par.nstates_redP];XPrime[n_par.nstates_redP+2:end]]
     σPr = XPrime[n_par.nstates_redP+1]
-    F = Fsys(X_old,XPr_old,Xss,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg)
+    F = Fsys(X_old,XPr_old,Xss,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg,balanced_budget=balanced_budget)
     shock_indexes = [getfield(indexes,s) for s in e_set.shock_names]
     F[shock_indexes] = (1+σ)*F[shock_indexes]
     return [F;σPr-σ]

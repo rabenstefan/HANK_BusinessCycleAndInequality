@@ -62,7 +62,6 @@ struct SteadyResults
   Copula
   n_par
   m_par
-  d
   CDF_SS
   CDF_m
   CDF_k
@@ -101,7 +100,6 @@ function save_steadystate(sr::SteadyResults;file="Saves")
                                 "XSS" => sr.XSS,
                                 "XSSaggr" => sr.XSSaggr,
                                 "compressionIndexes" => sr.compressionIndexes,
-                                "d" => sr.d,
                                 "CDF_SS" => sr.CDF_SS,
                                 "CDF_m" => sr.CDF_m,
                                 "CDF_k" => sr.CDF_k,
@@ -136,14 +134,14 @@ function load_steadystate(;file="Saves",ModelParamStruct = ModelParameters)
   end
   m_par = ModelParamStruct(;mpairs...)
   n_par = load_n_par(string(file,"/n_par.json"))
-  @load string(file,"/steadystate.jld2") XSS compressionIndexes d CDF_SS CDF_m CDF_k CDF_y distrSS
+  @load string(file,"/steadystate.jld2") XSS compressionIndexes CDF_SS CDF_m CDF_k CDF_y distrSS
   # produce indexes to access XSS etc.
   indexes = produce_indexes(n_par, compressionIndexes[1], compressionIndexes[2])
   indexes_aggr = produce_indexes_aggr(n_par)
   XSSnew, XSSaggr_new = reorder_XSS(XSS,n_par.aggr_names,n_par.naggrstates,indexes,indexes_aggr)
   Copula(x::Vector,y::Vector,z::Vector) = mylinearinterpolate3(CDF_m, CDF_k, CDF_y,
                                                               CDF_SS, x, y, z)
-  return SteadyResults(XSSnew, XSSaggr_new, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par, d,
+  return SteadyResults(XSSnew, XSSaggr_new, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par,
   CDF_SS, CDF_m, CDF_k, CDF_y, distrSS)
 end
 
@@ -273,7 +271,7 @@ function compute_steadystate(state_names,control_names)
 
   @set! n_par.LOMstate_save = zeros(n_par.nstates, n_par.nstates)
   @set! n_par.State2Control_save = zeros(n_par.ncontrols, n_par.nstates)
-  return SteadyResults(XSS, XSSaggr, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par, d,
+  return SteadyResults(XSS, XSSaggr, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par,
   CDF_SS, CDF_m, CDF_k, CDF_y, distrSS)
 end
 
@@ -290,10 +288,10 @@ using [`SGU()`](@ref).
 - `State2Control::Array{Float64,2}`: observation equation
 - `LOMstate::Array{Float64,2}`: state transition equation
 """
-function linearize_full_model(sr::SteadyResults;Fsys_agg::Function = Fsys_agg)
+function linearize_full_model(sr::SteadyResults;Fsys_agg::Function = Fsys_agg,balanced_budget=false)
     A=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
     B=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
-    State2Control, LOMstate, SolutionError, nk, A, B = SGU(sr.XSS, copy(A), copy(B), sr.m_par, sr.n_par, sr.indexes, sr.Copula, sr.compressionIndexes, sr.distrSS; estim = false, Fsys_agg = Fsys_agg)
+    State2Control, LOMstate, SolutionError, nk, A, B = SGU(sr.XSS, copy(A), copy(B), sr.m_par, sr.n_par, sr.indexes, sr.Copula, sr.compressionIndexes, sr.distrSS; estim = false, Fsys_agg = Fsys_agg,balanced_budget=balanced_budget)
     return LinearResults(State2Control, LOMstate, A, B, SolutionError)
 end
 

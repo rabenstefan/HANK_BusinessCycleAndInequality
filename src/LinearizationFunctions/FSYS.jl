@@ -28,7 +28,7 @@ julia> Fsys(zeros(ntotal),zeros(ntotal),XSS,m_par,n_par,indexes,Γ,compressionIn
 function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par,
               n_par::NumericalParameters, indexes, Γ::Array{Array{Float64,2},1},
               compressionIndexes::Array{Array{Int,1},1}, DC::Array{Array{Float64,2},1},
-              IDC::Array{Adjoint{Float64,Array{Float64,2}},1}, Copula::Function;Fsys_agg::Function = Fsys_agg,ret_pol_fcts = false)
+              IDC::Array{Adjoint{Float64,Array{Float64,2}},1}, Copula::Function;Fsys_agg::Function = Fsys_agg,ret_pol_fcts = false, balanced_budget = false)
               # The function call with Duals takes
               # Reserve space for error terms
     F = zeros(eltype(X),size(X))
@@ -140,8 +140,10 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     inc[1][:,:,end].= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0-τprog) # profit income net of taxes
     inc[5][:,:,end].= 0.0
     inc[6][:,:,end].= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0-τprog) # profit income net of taxes
-    # Rebate government spending lump-sum to all households
-    inc[1] .= inc[1] .+ G
+    if balanced_budget
+        # Rebate government spending lump-sum to all households
+        inc[1] .= inc[1] .+ G
+    end
 
     incgross =[  ((n_par.mesh_y/H).^tax_prog_scale .*mcw.*w.*N./(Ht)).+
             ((1.0 .- mcw).*w.*N),

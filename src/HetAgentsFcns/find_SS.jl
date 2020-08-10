@@ -14,7 +14,7 @@ Find the stationary equilibrium using a final resolution of `refined_ny` for inc
 - `distrSS::Array{Float64,3}`: steady state distribution of idiosyncratic states, computed by [`Ksupply()`](@ref)
 - `CDF_SS`, `CDF_m`, `CDF_k`, `CDF_y`: cumulative distribution functions (joint and marginals)
 """
-function find_SS()
+function find_SS(state_names,control_names)
 
 BLAS.set_num_threads(Threads.nthreads())
 
@@ -102,11 +102,11 @@ H               = (Paux[1,1:end-1]'*grid_y[1:end-1])
 
 # Write changed parameter values to n_par
 @set! n_par.ny          = ny + 1
-@set! n_par.nstates     = (ny + 1) + n_par.nk + n_par.nm + length(state_names_all) - 3
-@set! n_par.naggrstates = length(state_names_all)
-@set! n_par.naggrcontrols = length(control_names_all)
-@set! n_par.aggr_names  = [state_names_all; control_names_all]
-@set! n_par.naggr       = length(aggr_names_all)
+@set! n_par.nstates     = (ny + 1) + n_par.nk + n_par.nm + length(state_names) - 3
+@set! n_par.naggrstates = length(state_names)
+@set! n_par.naggrcontrols = length(control_names)
+@set! n_par.aggr_names  = [state_names; control_names]
+@set! n_par.naggr       = length(n_par.aggr_names)
 
 @set! n_par.bounds_y    = bounds
 @set! n_par.ϵ           = 1e-10
