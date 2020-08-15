@@ -169,7 +169,7 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid =
                     EGM_policyupdate(EVmPrime ,EVkPrime ,q,π,RB.*A,1.0,inc,n_par,m_par, false) # policy iteration
     if(ret_pol_fcts)
-        return c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid, inc, incgross
+        return c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid, inc, incgross, distr
     end
     # roughly 10% time
     # Update marginal values

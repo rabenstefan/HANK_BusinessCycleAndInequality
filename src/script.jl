@@ -10,19 +10,19 @@ const aggr_names = [state_names;control_names]
 push!(LOAD_PATH, pwd())
 using HANKEstim, JLD2
 
-# sr = compute_steadystate(state_names,control_names)
+sr = compute_steadystate(state_names,control_names)
 # save_steadystate(sr)
-sr = load_steadystate()
+# sr = load_steadystate()
 
-#lr = linearize_full_model(sr)
+# lr = linearize_full_model(sr)
 # @save "linearresults.jld2" lr
-@load "Saves/linearresults.jld2"
+#@load "Saves/linearresults.jld2"
 
 # warning: estimation might take a long time!
 # er = find_mode(sr,lr)
 # @save "Saves/estimresults.jld2" er
-@load "Saves/estimresults.jld2"
-montecarlo(sr,lr,er)
+# @load "Saves/estimresults.jld2"
+# montecarlo(sr,lr,er)
 
 # plot some irfs to tfp (z) shock
 # using LinearAlgebra, Plots

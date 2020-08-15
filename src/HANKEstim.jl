@@ -17,6 +17,7 @@ using Parameters, Setfield, MCMCChains, StatsPlots, Optim, CSV, OrderedCollectio
 using Flatten; import Flatten: flattenable
 using FieldMetadata; import FieldMetadata: prior, label
 using JSON
+using IncompleteLU, IterativeSolvers
 
 export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, montecarlo,
         find_SS, @writeXSS, @make_fn, @make_fnaggr, @make_struct, @make_struct_aggr,

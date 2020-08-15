@@ -77,6 +77,8 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
     k_a_star = zeros(n)
     c_a_star = zeros(n)
     c_n_star = zeros(n)
+    N = n[1]*n[2]*n[3]
+    on_grid = ((zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)))
     Vm      = eff_int.*mutil(c_guess,m_par.ξ)
     Vk      = (R_guess-1.0 + m_par.λ).*mutil(c_guess,m_par.ξ)
 
@@ -90,7 +92,7 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
         (n[1],n[2], n[3]))
 
         # Policy update step
-        c_a_star, m_a_star, k_a_star, c_n_star, m_n_star = EGM_policyupdate(EVm,EVk,1.0,m_par.π,RB_guess,1.0,inc,n_par,m_par, false)
+        c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid = EGM_policyupdate(EVm,EVk,1.0,m_par.π,RB_guess,1.0,inc,n_par,m_par, false)
 
         # marginal value update step
         Vk_new, Vm_new = updateV(EVk,c_a_star, c_n_star, m_n_star, R_guess-1.0, 1.0, m_par, n_par, n_par.Π)
@@ -111,29 +113,35 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
 
 
     # Define transition matrix
-
-    S_a, T_a, W_a, S_n, T_n, W_n = MakeTransition(m_a_star,  m_n_star, k_a_star,n_par.Π, n_par)
-    TransitionMat_a = sparse(S_a,T_a,W_a, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
-    TransitionMat_n = sparse(S_n,T_n,W_n, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
-    TransitionMat   = m_par.λ.*TransitionMat_a .+ (1.0 .- m_par.λ).*TransitionMat_n
-    if n_par.ny>8
-        # Direct Transition
-        distr = n_par.dist_guess #ones(n_par.nm, n_par.nk, n_par.ny)/(n_par.nm*n_par.nk*n_par.ny)
-        distr, dist, count = MultipleDirectTransition(m_a_star, m_n_star, k_a_star, distr, m_par.λ, n_par.Π, n_par)
-    else
+    TransitionMat = build_transition_matrix(on_grid,n_par,m_par)
+    # S_a, T_a, W_a, S_n, T_n, W_n = MakeTransition(m_a_star,  m_n_star, k_a_star,n_par.Π, n_par)
+    # TransitionMat_a = sparse(S_a,T_a,W_a, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
+    # TransitionMat_n = sparse(S_n,T_n,W_n, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
+    # TransitionMat   = m_par.λ.*TransitionMat_a .+ (1.0 .- m_par.λ).*TransitionMat_n
+    # if n_par.ny>8
+    #     # Direct Transition
+    #     distr = n_par.dist_guess #ones(n_par.nm, n_par.nk, n_par.ny)/(n_par.nm*n_par.nk*n_par.ny)
+    #     distr, dist, count = MultipleDirectTransition(m_a_star, m_n_star, k_a_star, distr, m_par.λ, n_par.Π, n_par)
+    # else
         # Calculate left-hand unit eigenvector (seems slow!!!)
-        aux::Array{Float64,2} = eigs(TransitionMat';nev=1,sigma=1)[2]
-        if isreal(aux)
-            aux = real(aux)
-        else
-            error("complex eigenvector of transition matrix")
-        end
-        distr = reshape((aux[:])./sum((aux[:])),  (n_par.nm, n_par.nk, n_par.ny))
-    end
+    # Use GMRES (Krylov iteration) with incomplete LU-preconditioning to solve for x: Ax = 0
+    A = TransitionMat' - sparse(I,N,N)
+    LU = ilu(A,τ=0.001)
+    # starting guess
+    x = fill(1/N,N)
+    gmres!(x,A,zeros(N),Pl=LU)
+    #     aux::Array{Float64,2} = eigs(TransitionMat';nev=1,sigma=1)[2]
+    #     if isreal(aux)
+    #         aux = real(aux)
+    #     else
+    #         error("complex eigenvector of transition matrix")
+    #     end
+    distr = reshape((x[:])./sum((x[:])),  (n_par.nm, n_par.nk, n_par.ny))
+    # end
     #-----------------------------------------------------------------------------
     # Calculate capital stock
     #-----------------------------------------------------------------------------
     K = sum(distr[:] .* n_par.mesh_k[:])
     B = sum(distr[:] .* n_par.mesh_m[:])
-    return K, B, TransitionMat, TransitionMat_a, TransitionMat_n, distr, c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, Vm, Vk
+    return K, B, TransitionMat, distr, c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, Vm, Vk
 end
