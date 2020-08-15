@@ -113,11 +113,11 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
 
 
     # Define transition matrix
-    TransitionMat = build_transition_matrix(on_grid,n_par,m_par)
-    # S_a, T_a, W_a, S_n, T_n, W_n = MakeTransition(m_a_star,  m_n_star, k_a_star,n_par.Π, n_par)
-    # TransitionMat_a = sparse(S_a,T_a,W_a, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
-    # TransitionMat_n = sparse(S_n,T_n,W_n, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
-    # TransitionMat   = m_par.λ.*TransitionMat_a .+ (1.0 .- m_par.λ).*TransitionMat_n
+    # TransitionMat = build_transition_matrix(on_grid,n_par,m_par)
+    S_a, T_a, W_a, S_n, T_n, W_n = MakeTransition(m_a_star,  m_n_star, k_a_star,n_par.Π, n_par)
+    TransitionMat_a = sparse(S_a,T_a,W_a, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
+    TransitionMat_n = sparse(S_n,T_n,W_n, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
+    TransitionMat   = m_par.λ.*TransitionMat_a .+ (1.0 .- m_par.λ).*TransitionMat_n
     # if n_par.ny>8
     #     # Direct Transition
     #     distr = n_par.dist_guess #ones(n_par.nm, n_par.nk, n_par.ny)/(n_par.nm*n_par.nk*n_par.ny)
