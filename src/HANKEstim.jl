@@ -27,7 +27,7 @@ export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, 
         load_steadystate, save_steadystate, compute_steadystate, SteadyResults,
         Tauchen, EGM_policyupdate, Kdiff, distrSummaries, @generate_equations,
         @make_deriv, @make_deriv_estim, prioreval, load_n_par, update_XSS, @include,
-        employment, output, wage
+        employment, output, wage, MakeTransition
 
 distr_names=["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share",
 "I90sharenet", "P9010I", "w90share", "P10C", "P50C", "P90C"]
