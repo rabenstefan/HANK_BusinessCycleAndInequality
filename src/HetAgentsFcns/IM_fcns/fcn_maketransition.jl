@@ -77,7 +77,17 @@ function MakeTransition(m_a_star::Array{Float64,3},
     return S_a, T_a, W_a, S_n, T_n, W_n
 end
 
-function build_transition_matrix(on_grid,n_par,m_par)
+"""
+    build_transition_matrix(on_grid,n_par)
+
+Build transition matrix ``(m,k,y)`` to ``(m',k',y')`` from
+`on_grid` vector returned by [`EGM_policyupdate()`](@ref).
+
+# Returns
+- `S_a`, `T_a`, `W_a`: start indices, target indices, and values (weights) in case of adjustment
+- `S_n`, `T_n`, `W_n`: start indices, target indices, and values (weights) in case of non-adjustment
+"""
+function build_transition_matrix(on_grid,n_par)
     mesh_kix = repeat(1:n_par.nk,inner=n_par.nm,outer=n_par.ny)
     linix = LinearIndices((n_par.nm,n_par.nk,n_par.ny))
     liqu = [on_grid[1][1]; on_grid[1][1] .+ 1; on_grid[2][1]; on_grid[2][1] .+ 1; on_grid[3][1]; on_grid[3][1] .+ 1]
@@ -90,14 +100,21 @@ function build_transition_matrix(on_grid,n_par,m_par)
     Ntot = n_par.nm*n_par.nk*n_par.ny
     cartix = CartesianIndices((6,n_par.ny))
     row_ind = [linix[liqu[i,j],illiqu[i,j],cartix[i][2]] for i=1:6*n_par.ny, j=1:Ntot]
-    naprob = 1 - m_par.λ  
-    values = repeat([on_grid[1][2] .* naprob; (1 .- on_grid[1][2]) .* naprob; on_grid[2][2] .* on_grid[4][2] .* m_par.λ; (1 .- on_grid[2][2]) .* on_grid[4][2] .* m_par.λ; on_grid[3][2] .* (1 .- on_grid[4][2]) .* m_par.λ;(1 .- on_grid[3][2]) .* (1 .- on_grid[4][2]) .* m_par.λ],n_par.ny).*idios
+    values = repeat([on_grid[1][2]; (1 .- on_grid[1][2]); on_grid[2][2] .* on_grid[4][2]; (1 .- on_grid[2][2]) .* on_grid[4][2]; on_grid[3][2] .* (1 .- on_grid[4][2]);(1 .- on_grid[3][2]) .* (1 .- on_grid[4][2])],n_par.ny).*idios
     # nr_neg_weights = sum(values .< 0)
     # if(0 < nr_neg_weights)
     #     @warn("Negative weights obtained! Nr: ")
     #     print(nr_neg_weights)
     # end
-    T = sparse(row_ind[:],repeat((1:Ntot)',6*n_par.ny)[:],values[:],Ntot,Ntot)
-    dropzeros!(T)
-    return T'
+    # T = sparse(row_ind[:],repeat((1:Ntot)',6*n_par.ny)[:],values[:],Ntot,Ntot)
+    Idio_linix = LinearIndices((6,n_par.ny))
+    S_n = repeat((1:Ntot)',2*n_par.ny)[:]
+    T_n = row_ind[Idio_linix[1:2,:],:][:]
+    W_n = values[Idio_linix[1:2,:],:][:]
+    S_a = repeat((1:Ntot)',4*n_par.ny)[:]
+    T_a = row_ind[Idio_linix[3:6,:],:][:]
+    W_a = values[Idio_linix[3:6,:],:][:]
+    # dropzeros!(T)
+    # return T
+    return S_a, T_a, W_a, S_n, T_n, W_n
 end

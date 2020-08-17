@@ -143,5 +143,5 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
     #-----------------------------------------------------------------------------
     K = sum(distr[:] .* n_par.mesh_k[:])
     B = sum(distr[:] .* n_par.mesh_m[:])
-    return K, B, TransitionMat, distr, c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, Vm, Vk
+    return K, B, TransitionMat, TransitionMat_a, TransitionMat_n, distr, c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, Vm, Vk
 end

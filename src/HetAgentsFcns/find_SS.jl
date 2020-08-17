@@ -79,7 +79,7 @@ wSS       = wage(KSS,1.0 / m_par.μ, NSS , m_par)
 YSS       = output(KSS,1.0,NSS, m_par)
 ProfitsSS = (1.0 -1.0 / m_par.μ).*YSS
 
-KSS, BSS, TransitionMatSS, distrSS,
+KSS, BSS, TransitionMatSS,TransitionMatSS_a,TransitionMatSS_n, distrSS,
         c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
         Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
 
@@ -129,7 +129,7 @@ wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
 YSS                     = output(KSS,1.0,NSS, m_par)
 ProfitsSS               = (1.0 -1.0 / m_par.μ).*YSS
 
-KSS, BSS, TransitionMatSS, distrSS,
+KSS, BSS, TransitionMatSS, TransitionMatSS_a, TransitionMatSS_n, distrSS,
         c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
         Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
 
