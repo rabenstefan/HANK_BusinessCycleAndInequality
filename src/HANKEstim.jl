@@ -398,9 +398,9 @@ function montecarlo(sr::SteadyResults,lr::LinearResults, er::EstimResults;file::
 
     ##
     if e_set.me_treatment != :fixed
-    m_par = Flatten.reconstruct(sr.m_par, par_final[1:length(par_final) - length(er.meas_error)])
+    m_par = Flatten.reconstruct(sr.m_par, par_final[1:length(par_final) - length(er.meas_error)],flattenable)
     else
-    m_par = Flatten.reconstruct(sr.m_par, par_final)
+    m_par = Flatten.reconstruct(sr.m_par, par_final,flattenable)
     end
     State2Control, LOMstate, alarm_sgu, nk = SGU_estim(sr.XSSaggr,  lr.A, lr.B, m_par, sr.n_par, sr.indexes, sr.indexes_aggr, sr.distrSS; estim = true)
 

@@ -34,7 +34,7 @@ function likeli(par, Data, Data_miss, H_sel, XSSaggr, A, B, indexes,indexes_aggr
         end
 
         # replace estimated values in m_par by last candidate
-        m_par = Flatten.reconstruct(m_par, par[1:m_start])
+        m_par = Flatten.reconstruct(m_par, par[1:m_start],flattenable)
 
         #display(m_par)
         # Covariance of structural shocks

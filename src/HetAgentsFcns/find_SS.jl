@@ -24,9 +24,9 @@ m_par           = ModelParamStruct( )
 @load string(path,"/",e_set.mode_start_file) par_final parnames
 par = par_final[1:length(parnames)]
 if e_set.me_treatment != :fixed
-  m_par = Flatten.reconstruct(m_par, par[1:length(par) - length(e_set.meas_error_input)])
+  m_par = Flatten.reconstruct(m_par, par[1:length(par) - length(e_set.meas_error_input)],flattenable)
 else
-  m_par = Flatten.reconstruct(m_par, par)
+  m_par = Flatten.reconstruct(m_par, par, flattenable)
 end
 
 # Define basic price functions

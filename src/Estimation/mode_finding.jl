@@ -69,9 +69,9 @@ function mode_finding(XSSaggr, A, B, indexes, indexes_aggr, Copula,distrSS, comp
   par = par_final[1:length(parnames)]
 
   if e_set.me_treatment != :fixed
-    m_par = Flatten.reconstruct(m_par, par[1:length(par) - length(meas_error)])
+    m_par = Flatten.reconstruct(m_par, par[1:length(par) - length(meas_error)],flattenable)
   else
-    m_par = Flatten.reconstruct(m_par, par)
+    m_par = Flatten.reconstruct(m_par, par, flattenable)
   end
 
 
@@ -93,9 +93,9 @@ function mode_finding(XSSaggr, A, B, indexes, indexes_aggr, Copula,distrSS, comp
   posterior_mode = - Optim.minimum(opti)
 
   if e_set.me_treatment != :fixed
-    m_par = Flatten.reconstruct(m_par, par_final[1:length(par_final) - length(meas_error)])
+    m_par = Flatten.reconstruct(m_par, par_final[1:length(par_final) - length(meas_error)],flattenable)
   else
-    m_par = Flatten.reconstruct(m_par, par_final)
+    m_par = Flatten.reconstruct(m_par, par_final,flattenable)
   end
 
  State2Control, LOMstate, alarm_sgu, nk = SGU_estim(XSSaggr,  A, B, m_par, n_par, indexes, indexes_aggr,distrSS; estim = true)
