@@ -14,14 +14,14 @@ Find the stationary equilibrium using a final resolution of `refined_ny` for inc
 - `distrSS::Array{Float64,3}`: steady state distribution of idiosyncratic states, computed by [`Ksupply()`](@ref)
 - `CDF_SS`, `CDF_m`, `CDF_k`, `CDF_y`: cumulative distribution functions (joint and marginals)
 """
-function find_SS(state_names,control_names)
+function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,path)
 
 BLAS.set_num_threads(Threads.nthreads())
 
 # global m_par, n_par, CDF_m, CDF_k, CDF_y
 # load estimated parameter set
-m_par           = ModelParameters( )
-@load e_set.mode_start_file par_final parnames
+m_par           = ModelParamStruct( )
+@load string(path,"/",e_set.mode_start_file) par_final parnames
 par = par_final[1:length(parnames)]
 if e_set.me_treatment != :fixed
   m_par = Flatten.reconstruct(m_par, par[1:length(par) - length(e_set.meas_error_input)])
