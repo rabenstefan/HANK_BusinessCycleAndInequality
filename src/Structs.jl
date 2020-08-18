@@ -13,7 +13,7 @@ whether parameter is estimated.
 ```jldoctest
 julia> m_par = ModelParameters();
 julia> # Obtain vector of prior distributions of parameters that are estimated.
-julia> priors = collect(metaflatten(m_par, prior))
+julia> priors = collect(metaflatten(m_par, prior,flattenable))
 ```
 """
 @label @latex_label @prior @flattenable @with_kw struct ModelParameters{T}

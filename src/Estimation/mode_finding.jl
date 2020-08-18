@@ -76,7 +76,7 @@ function mode_finding(XSSaggr, A, B, indexes, indexes_aggr, Copula,distrSS, comp
 
 
   ## Prior specification
-  priors = collect(metaflatten(m_par, prior)) # model parameters
+  priors = collect(metaflatten(m_par, prior,flattenable)) # model parameters
   if e_set.me_treatment != :fixed
     append!(priors, meas_error_prior)          # add the meas. error priors
   end

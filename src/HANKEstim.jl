@@ -384,7 +384,7 @@ function montecarlo(sr::SteadyResults,lr::LinearResults, er::EstimResults;file::
     draws = draws_raw[e_set.burnin+1:end, :]
 
     ##
-    parnames_ascii = collect(metaflatten(sr.m_par, label))
+    parnames_ascii = collect(metaflatten(sr.m_par, label, flattenable))
     if e_set.me_treatment != :fixed
     for i in eachindex(e_set.meas_error_input)
         push!(parnames_ascii, string("sigma_me_", e_set.meas_error_input[i]))
