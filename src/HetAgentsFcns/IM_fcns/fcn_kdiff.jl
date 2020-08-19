@@ -12,7 +12,7 @@ Requires global functions `employment(K,A,m_par)`, `interest(K,A,N,m_par)`,
 - `K_guess::Float64`: capital stock guess
 - `n_par::NumericalParameters`, `m_par::ModelParameters`
 """
-function Kdiff(K_guess::Float64, n_par::NumericalParameters, m_par::ModelParameters)
+function Kdiff(K_guess::Float64, n_par::NumericalParameters, m_par)
     N       = employment(K_guess, 1.0 ./(m_par.μ*m_par.μw), m_par)
     r       = interest(K_guess,1.0 ./m_par.μ,N, m_par)
     w       = wage(K_guess,1 ./m_par.μ,N, m_par)

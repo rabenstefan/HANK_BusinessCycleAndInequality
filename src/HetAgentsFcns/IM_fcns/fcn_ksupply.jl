@@ -24,7 +24,7 @@ Idiosyncratic state is tuple ``(m,k,y)``, where
     without [`n`] adjustment of illiquid asset
 - `V_m`,`V_k`: marginal value functions
 """
-function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_guess::Float64, n_par::NumericalParameters, m_par::ModelParameters)
+function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_guess::Float64, n_par::NumericalParameters, m_par)
     #----------------------------------------------------------------------------
     # Initialize policy function guess
     #----------------------------------------------------------------------------
