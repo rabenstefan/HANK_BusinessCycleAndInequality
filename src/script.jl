@@ -10,9 +10,9 @@ const aggr_names = [state_names;control_names]
 push!(LOAD_PATH, pwd())
 using HANKEstim, JLD2
 
-sr = compute_steadystate(state_names,control_names)
+#sr = compute_steadystate(state_names,control_names)
 # save_steadystate(sr)
-# sr = load_steadystate()
+sr = load_steadystate()
 
 # lr = linearize_full_model(sr)
 # @save "linearresults.jld2" lr
