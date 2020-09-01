@@ -70,7 +70,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
 
         # b.) Find equilibrium capital stock (multigrid on y)
         # ba.) initial calculation
-        KSS       = Brent(d, Kmin, Kmax)[1]
+        KSS       = Brent(d, .9*Kmin, 1.2*Kmax)[1]
 
         # c.) Calculate other equilibrium quantities
         NSS       = employment(KSS, 1.0 ./ (m_par.μ*m_par.μw), m_par)

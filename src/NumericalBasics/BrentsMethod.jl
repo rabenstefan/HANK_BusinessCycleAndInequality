@@ -5,7 +5,7 @@ function Brent(f::Function, a::Real, b::Real; tol = 1e-14)
     # Implementation of Brent's method to find a root of a function (as on wikipedia)
     fa = f(a); fb = f(b)
     if fa * fb > 0
-        error("f[a] and f[b] should not have different signs!")
+        error("f[a] and f[b] should have different signs!")
     end
 
     c = a;
