@@ -2,7 +2,7 @@
 # Basic Functions: Return on capital, marginal utility and its inverse
 #---------------------------------------------------------------------------
 mutil(c::Array,#Union{Array{Float64},Array{DualNumbers.Dual{Float64}}},
-    ξ::Float64)      = 1.0 ./ ((c.*c).*(c.*c))#c.^ξ#
+    ξ::Float64)      = 1.0 ./ ((c.*c).*(c.*c))#c.^-ξ#
 invmutil(mu::Array,#Union{Array{Float64},Array{DualNumbers.Dual{Float64}}},
     ξ::Float64)  = 1.0 ./ (sqrt.(sqrt.(mu)))#mu.^(1.0./ξ)#
 
