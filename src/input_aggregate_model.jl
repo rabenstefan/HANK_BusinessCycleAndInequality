@@ -81,7 +81,7 @@ F[indexes.τproggrowth] = log(τproggrowth) - log(τprog/τproglag)
 F[indexes.rgrowth] = log(rgrowth) - log(r/rlag)
 F[indexes.RBgrowth] = log(RBgrowth) - log(RB/RBlag)
 
-N_GAP = employment(K, 1.0 ./ (m_par.μ*m_par.μw), m_par)
+N_GAP = employment(K, Z*1.0 ./ (m_par.μ*m_par.μw), m_par)
 Y_GAP = output(K,Z,N_GAP, m_par)
 
 #  Taylor rule and interest rates
