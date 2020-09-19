@@ -45,7 +45,7 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     # rPrime  = exp.(Xss[indexes.rSS] .+ XPrime[indexes.r])
     ############################################################################
 
-    @generate_equations(aggr_names)
+    @generate_equations(aggr_names_ess)
 
     ############################################################################
     # I.2. Distributions (Γ-multiplying makes sure that they are distributions)

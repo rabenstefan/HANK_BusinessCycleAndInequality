@@ -183,7 +183,7 @@ function Fsys_wrap(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1
     XPr_old[setdiff(ix_all,n_par.indexes_constP)] = [XPrime[1:n_par.nstates_redP];XPrime[n_par.nstates_redP+2:end]]
     σPr = XPrime[n_par.nstates_redP+1]
     F = Fsys(X_old,XPr_old,Xss,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg,balanced_budget=balanced_budget)
-    shock_indexes = [getfield(indexes,s) for s in e_set.shock_names]
+    shock_indexes = [getfield(indexes,s) for s in intersect(e_set.shock_names,n_par.aggr_names)]
     F[shock_indexes] = (1+σ)*F[shock_indexes]
     return [F;σPr-σ]
 end

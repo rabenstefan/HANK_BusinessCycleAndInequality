@@ -1,7 +1,6 @@
-include("input_aggregate_names.jl")
-#include("input_aggregate_optional_names.jl")
-#const state_names = [state_names_ess;state_names_opt]
-#const control_names = [control_names_opt;control_names_ess]
+include("input_aggregate_optional_names.jl")
+const state_names = [state_names_ess;state_names_opt]
+const control_names = [control_names_opt;control_names_ess]
 const aggr_names = [state_names;control_names]
 
 # make sure that your pwd is set to the folder containing script and HANKEstim

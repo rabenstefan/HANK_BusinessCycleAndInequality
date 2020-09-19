@@ -23,7 +23,7 @@ as in [`SGU()`](@ref)
 """
 function SGU_estim(XSSaggr::Array, A::Array, B::Array,
     m_par, n_par::NumericalParameters, indexes,
-    indexes_aggr, distrSS::AbstractArray; estim=estim)
+    indexes_aggr, distrSS::AbstractArray; estim=estim,Fsys_agg::Function = Fsys_agg)
 
     ############################################################################
     # Prepare elements used for uncompression
@@ -42,7 +42,7 @@ function SGU_estim(XSSaggr::Array, A::Array, B::Array,
     F  = Fsys_agg(X0,X0,XSSaggr,distrSS,m_par,n_par,indexes_aggr)
 
     @make_deriv_estim n_FD
-    BLAS.set_num_threads(1)
+    BLAS.set_num_threads(12)
 
     prime_loop_estim!(Ad, DerivPrime, length_X0, n_par,n_FD)
     loop_estim!(Bd, Deriv, length_X0, n_par,n_FD)
