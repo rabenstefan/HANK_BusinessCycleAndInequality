@@ -8,9 +8,9 @@ Idiosyncratic state is tuple ``(m,k,y)``, where
 
 # Arguments
 - `R_guess`: real interest rate illiquid assets
-- `RB_guess`: nominal rate on liquid assets
+- `RL_guess`: return on liquid assets
 - `w_guess`: wages
-- `profit_guess`: profits
+- `profit_guess`: profits (payout to entrepreneurs)
 - `n_par::NumericalParameters`
 - `m_par::ModelParameters`
 
@@ -24,7 +24,7 @@ Idiosyncratic state is tuple ``(m,k,y)``, where
     without [`n`] adjustment of illiquid asset
 - `V_m`,`V_k`: marginal value functions
 """
-function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_guess::Float64, n_par::NumericalParameters, m_par)
+function Ksupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,profit_guess::Float64, n_par::NumericalParameters, m_par)
     #----------------------------------------------------------------------------
     # Initialize policy function guess
     #----------------------------------------------------------------------------
@@ -51,7 +51,7 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
     # rental income
     inc[2] = (R_guess-1.0).* n_par.mesh_k
     # liquid asset Income
-    eff_int = (RB_guess .+ m_par.Rbar.*(n_par.mesh_m.<=0.0)) # effective rate
+    eff_int = (RL_guess .+ m_par.Rbar.*(n_par.mesh_m.<=0.0))./m_par.π # effective rate
     inc[3] = eff_int .*n_par.mesh_m
     # capital liquidation Income (q=1 in steady state)
     inc[4] = n_par.mesh_k
@@ -92,7 +92,7 @@ function Ksupply(RB_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
         (n[1],n[2], n[3]))
 
         # Policy update step
-        c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid = EGM_policyupdate(EVm,EVk,1.0,m_par.π,RB_guess,1.0,inc,n_par,m_par, false)
+        c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid = EGM_policyupdate(EVm,EVk,1.0,m_par.π,RL_guess,1.0,inc,n_par,m_par, false)
 
         # marginal value update step
         Vk_new, Vm_new = updateV(EVk,c_a_star, c_n_star, m_n_star, R_guess-1.0, 1.0, m_par, n_par, n_par.Π)

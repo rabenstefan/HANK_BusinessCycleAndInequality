@@ -29,17 +29,6 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         m_par = Flatten.reconstruct(m_par, par, flattenable)
         end
 
-        # Define basic price functions
-        int_com(x)      = interest(x, 1 / m_par.μ, employment(x, 1 /
-                                (m_par.μ*m_par.μw), m_par), m_par)
-        wage_com(x)     = wage(x, 1 / m_par.μ, employment(x, 1 /
-                        (m_par.μ*m_par.μw), m_par), m_par) *
-                        employment(x, 1 / m_par.μ, m_par)
-
-        profits(x)      = (1.0 - 1.0 ./ m_par.μ) * output(x, 1.0,
-                        employment(x, 1.0 ./
-                        (m_par.μ*m_par.μw), m_par), m_par)
-
         # Read out numerical parameters for starting guess solution with reduced income grid.
         ny              = 5; # eigs in Ksupply quickly increases in runtime in ny (more than ny^2).
         grid_y, Π, bounds = Tauchen(m_par.ρ_h,ny) # Income grid and transitions
@@ -77,11 +66,11 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         rSS       = interest(KSS,1.0 / m_par.μ, NSS, m_par)
         wSS       = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS       = output(KSS,1.0,NSS, m_par)
-        ProfitsSS = (1.0 -1.0 / m_par.μ).*YSS
+        ProfitsSS = profitsSS(YSS,m_par)
 
         KSS, BSS, TransitionMatSS,TransitionMatSS_a,TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-                Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
+                Ksupply(RLSS(YSS,sum(n_par.dist_guess[:] .* n_par.mesh_m[:]),m_par),1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
 
         ## bb.) refinement
         ny              = n_par.ny_refined; # eigs in Ksupply quickly increases in runtime in ny
@@ -127,11 +116,11 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         rSS                     = interest(KSS,1.0 / m_par.μ, NSS, m_par)
         wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS                     = output(KSS,1.0,NSS, m_par)
-        ProfitsSS               = (1.0 -1.0 / m_par.μ).*YSS
+        ProfitsSS               = profitsSS(YSS,m_par)
 
         KSS, BSS, TransitionMatSS, TransitionMatSS_a, TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-                Ksupply(m_par.RB./m_par.π,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
+                Ksupply(RLSS(YSS,BSS,m_par),1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
 
         VmSS                    = log.(VmSS)
         VkSS                    = log.(VkSS)

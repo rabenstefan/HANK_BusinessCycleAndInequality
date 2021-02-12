@@ -50,6 +50,10 @@ julia> priors = collect(metaflatten(m_par, prior,flattenable))
 	RB::T = π*(1.016.^0.25) | "RB" | L"RB"  |  _  | false # Nominal Interest Rate
 	Rbar::T = (π*(1.0675.^0.25) .- 1.0) | "Rbar" |  L"\bar R"  |  _  | false # borrowing wedge in interest rate
 
+	# Tradable shares
+	ωΠ::T = 0.0 | "omegaPi" | L"\omega^{\Pi}" | _ | false # fraction of tradable firm-profits
+	ιΠ::T = 0.0 | "iotaPi" | L"\iota^{\Pi}" | _ | false # fraction of shares that retire / depreciate
+
 	# exogeneous aggregate "shocks"
 	ρ_A::T = 0.9 | "rho_A" | L"\rho_A" | Beta(beta_pars(0.5, 0.2^2)...)        | true # Pers. of bond-spread
 	σ_A::T = 0.0 | "sigma_A" | L"\sigma_A" | InverseGamma(ig_pars(0.001, 0.02^2)...) | true # Std of bond-spread shock
