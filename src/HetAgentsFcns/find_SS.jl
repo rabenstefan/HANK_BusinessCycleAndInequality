@@ -66,7 +66,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         rSS       = interest(KSS,1.0 / m_par.μ, NSS, m_par)
         wSS       = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS       = output(KSS,1.0,NSS, m_par)
-        ProfitsSS = profitsSS(YSS,m_par)
+        ProfitsSS = profitsSS_fnc(YSS,m_par)
 
         KSS, BSS, TransitionMatSS,TransitionMatSS_a,TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
@@ -116,7 +116,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         rSS                     = interest(KSS,1.0 / m_par.μ, NSS, m_par)
         wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS                     = output(KSS,1.0,NSS, m_par)
-        ProfitsSS               = profitsSS(YSS,m_par)
+        ProfitsSS               = profitsSS_fnc(YSS,m_par)
 
         KSS, BSS, TransitionMatSS, TransitionMatSS_a, TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
@@ -128,37 +128,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         ISS                     = m_par.δ_0*KSS
 
         # Produce distributional summary statistics
-        eff_int      = (RBSS           .+ (m_par.Rbar .* (n_par.mesh_m.<=0.0))) # effective rate (need to check timing below and inflation)
-
-        incgross =[  (n_par.mesh_y .* (1. /m_par.μw).*wSS.*NSS./H).+
-                (1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS,# labor income (NEW)
-                interest(KSS,1.0 / m_par.μ, NSS, m_par).* n_par.mesh_k, # rental income
-                eff_int .* n_par.mesh_m, # liquid asset Income
-                n_par.mesh_k,
-                (1.0 ./ m_par.μw).*wSS.*NSS.*n_par.mesh_y./H] # capital liquidation Income (q=1 in steady state)
-        incgross[1][:,:,end].= n_par.mesh_y[:,:,end] .* ProfitsSS  # profit income net of taxes
-        incgross[5][:,:,end].= n_par.mesh_y[:,:,end] .* ProfitsSS  # profit income net of taxes
-
-        inc =[  (((m_par.γ - m_par.τ_prog)/(m_par.γ+1)).*m_par.τ_lev.*(n_par.mesh_y.*1.0 ./m_par.μw.*wSS.*NSS./H).^(1.0-m_par.τ_prog)).+
-                ((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS),# labor income (NEW)
-                interest(KSS,1.0 / m_par.μ, NSS, m_par).* n_par.mesh_k, # rental income
-                eff_int .* n_par.mesh_m, # liquid asset Income
-                n_par.mesh_k,
-                m_par.τ_lev.*((1.0 ./ m_par.μw).*wSS.*NSS.*n_par.mesh_y./H).^(1.0-m_par.τ_prog).*((1.0 - m_par.τ_prog)/(m_par.γ+1)),
-                m_par.τ_lev.*((1.0 ./ m_par.μw).*wSS.*NSS.*n_par.mesh_y./H).^(1.0-m_par.τ_prog)] # capital liquidation Income (q=1 in steady state)
-        inc[1][:,:,end].= m_par.τ_lev.*(n_par.mesh_y[:,:,end] .* ProfitsSS).^(1.0-m_par.τ_prog)  # profit income net of taxes
-        inc[5][:,:,end].= 0.0
-        inc[6][:,:,end].= m_par.τ_lev.*(n_par.mesh_y[:,:,end] .* ProfitsSS).^(1.0-m_par.τ_prog)  # profit income net of taxes
-
-        taxrev        = incgross[5]-inc[6]
-        incgrossaux   = incgross[5]
-        av_tax_rateSS = (distrSS[:]' * taxrev[:])./(distrSS[:]' * incgrossaux[:])
-
-        # apply taxes to union profits
-        inc[1] =(((m_par.γ - m_par.τ_prog)/(m_par.γ+1)).*m_par.τ_lev.*(n_par.mesh_y.*1.0 ./m_par.μw.*wSS.*NSS./H).^(1.0-m_par.τ_prog)).+ # labor income
-                ((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS).*(1.0 .- av_tax_rateSS)# labor union income
-        inc[1][:,:,end].= m_par.τ_lev.*(n_par.mesh_y[:,:,end] .* ProfitsSS).^(1.0-m_par.τ_prog)
-
+        incgross, inc, av_tax_rateSS, taxrev = incomes(n_par,m_par,distrSS,NSS,1 .+ rSS,wSS,ProfitsSS,RLSS(YSS,BSS,m_par),1.0 ./ m_par.μw,1.0,m_par.τ_prog,m_par.τ_lev,1.0,H)
 
         TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))
         GSS           = TSS - (m_par.RB./m_par.π-1.0)*BSS

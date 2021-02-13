@@ -12,15 +12,15 @@ wage(K::Number, A::Number,N::Number, m_par)     = A.* (1-m_par.α) .* (K./N) .^m
 output(K::Number, A::Number,N::Number, m_par)  = A.* K .^(m_par.α).*N .^(1-m_par.α)
 employment(K::Number, A::Number, m_par)     = (A.* (1.0-m_par.α) .* (m_par.τ_lev .* (1.0 - m_par.τ_prog)).^(1.0 /(1.0 - m_par.τ_prog)) .* K .^(m_par.α )).^((1.0 - m_par.τ_prog)./(m_par.γ+m_par.τ_prog+(m_par.α).*(1 - m_par.τ_prog))) # A=TFP*MC
 # steady state payout to entrepreneurs
-profitsSS(Y::Number, m_par) = (1.0 .- 1.0 ./ m_par.μ) .* Y .* 
+profitsSS_fnc(Y::Number, m_par) = (1.0 .- 1.0 ./ m_par.μ) .* Y .* 
 ((1.0 .- m_par.RB ./m_par.π) .* (1.0 .- m_par.ωΠ) .- m_par.ιΠ) ./
 (1.0 .- m_par.RB ./m_par.π .- m_par.ιΠ)
 # price of tradable stock in steady state
-qΠSS(Y::Number,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(m_par.RB ./m_par.π .- 1 .+ m_par.ιΠ) 
+qΠSS_fnc(Y::Number,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(m_par.RB ./m_par.π .- 1 .+ m_par.ιΠ) 
 # liquid return
 RL(RB,qΠlag,qΠ,B,π,firm_profits,m_par) = (B.*RB .+ π .*(qΠ .* (1 .- m_par.ιΠ) .+ m_par.ωΠ .* firm_profits))./(B .+ qΠlag)
 # steady state liquid return
-RLSS(Y::Number,B::Number,m_par) = RL(m_par.RB,qΠSS(Y,m_par),qΠSS(Y,m_par),B,m_par.π,(1.0 .- 1.0 ./ m_par.μ).*Y,m_par)
+RLSS(Y::Number,B::Number,m_par) = RL(m_par.RB,qΠSS_fnc(Y,m_par),qΠSS_fnc(Y,m_par),B,m_par.π,(1.0 .- 1.0 ./ m_par.μ).*Y,m_par)
 
 @doc raw"""
     distrSummaries(distr,c_a_star,c_n_star,n_par,inc,incgross,m_par)
