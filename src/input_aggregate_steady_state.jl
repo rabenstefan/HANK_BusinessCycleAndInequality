@@ -26,6 +26,7 @@ mcwwSS    = wSS*mcwSS
 uSS       = 1.0
 profitsSS = ProfitsSS
 firm_profitsSS = (1.0 - mcSS) .* YSS
+println("firm_profitsSS: ", firm_profitsSS)
 qΠSS      = qΠSS_fnc(YSS,m_par)
 qΠlagSS   = qΠSS
 

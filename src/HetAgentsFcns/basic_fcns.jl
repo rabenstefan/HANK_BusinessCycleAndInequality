@@ -13,8 +13,8 @@ output(K::Number, A::Number,N::Number, m_par)  = A.* K .^(m_par.α).*N .^(1-m_pa
 employment(K::Number, A::Number, m_par)     = (A.* (1.0-m_par.α) .* (m_par.τ_lev .* (1.0 - m_par.τ_prog)).^(1.0 /(1.0 - m_par.τ_prog)) .* K .^(m_par.α )).^((1.0 - m_par.τ_prog)./(m_par.γ+m_par.τ_prog+(m_par.α).*(1 - m_par.τ_prog))) # A=TFP*MC
 # steady state payout to entrepreneurs
 profitsSS_fnc(Y::Number, m_par) = (1.0 .- 1.0 ./ m_par.μ) .* Y .* 
-((1.0 .- m_par.RB ./m_par.π) .* (1.0 .- m_par.ωΠ) .- m_par.ιΠ) ./
-(1.0 .- m_par.RB ./m_par.π .- m_par.ιΠ)
+((m_par.RB ./m_par.π .- 1.0) .* (1.0 .- m_par.ωΠ) .+ m_par.ιΠ) ./
+(m_par.RB ./m_par.π .- 1.0 .+ m_par.ιΠ)
 # price of tradable stock in steady state
 qΠSS_fnc(Y::Number,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(m_par.RB ./m_par.π .- 1 .+ m_par.ιΠ) 
 # liquid return

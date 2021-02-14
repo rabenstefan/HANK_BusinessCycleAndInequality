@@ -124,40 +124,20 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     ############################################################################
     #               III. 2. Heterogeneous Agent Part                           #
     ############################################################################
+    # Return on liquid assets (gvmt bonds and profit shares)
+    retL = RL(RB,qΠlag,qΠ,B,π,firm_profits,m_par)
+    retLPrime = RL(RBPrime,qΠ,qΠPrime,BPrime,πPrime,firm_profitsPrime,m_par)
     # Incomes
-    eff_int      = ((RB .* A)           .+ (m_par.Rbar .* (n_par.mesh_m.<=0.0))) ./ π # effective rate (need to check timing below and inflation)
-    eff_intPrime = (RBPrime .* APrime .+ (m_par.Rbar.*(n_par.mesh_m.<=0.0))) ./ πPrime
-
-    GHHFA=((m_par.γ - τprog)/(m_par.γ+1)) # transformation (scaling) for composite good
-    tax_prog_scale = (m_par.γ + m_par.τ_prog)/((m_par.γ + τprog))
-    inc =[  GHHFA.*τlev.*((n_par.mesh_y/H).^tax_prog_scale .*mcw.*w.*N./(Ht)).^(1.0-τprog).+
-            ((1.0 .- mcw).*w.*N).*(1.0 .- av_tax_rate),# labor income (NEW)
-            (r .- 1.0).* n_par.mesh_k, # rental income
-            eff_int .* n_par.mesh_m, # liquid asset Income
-            n_par.mesh_k .* q,
-            τlev.*(mcw.*w.*N.*n_par.mesh_y./ H).^(1.0-τprog).*((1.0 - τprog)/(m_par.γ+1)),
-            τlev.*((n_par.mesh_y/H).^tax_prog_scale .*mcw.*w.*N./(Ht)).^(1.0-τprog)] # capital liquidation Income (q=1 in steady state)
-    inc[1][:,:,end].= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0-τprog) # profit income net of taxes
-    inc[5][:,:,end].= 0.0
-    inc[6][:,:,end].= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0-τprog) # profit income net of taxes
+    incgross, inc = incomes(n_par,m_par,distr,N,r,w,profits,A,retL,π,mcw,q,τprog,τlev,Ht,H)
     if balanced_budget
         # Rebate government spending lump-sum to all households
         inc[1] .= inc[1] .+ G
     end
-
-    incgross =[  ((n_par.mesh_y/H).^tax_prog_scale .*mcw.*w.*N./(Ht)).+
-            ((1.0 .- mcw).*w.*N),
-            (r .- 1.0).* n_par.mesh_k, # rental income
-            eff_int .* n_par.mesh_m, # liquid asset Income
-            n_par.mesh_k .* q,
-            ((n_par.mesh_y/H).^tax_prog_scale .*mcw.*w.*N./(Ht))] # capital liquidation Income (q=1 in steady state)
-    incgross[1][:,:,end].= (n_par.mesh_y[:,:,end] .* profits)
-    incgross[5][:,:,end].= (n_par.mesh_y[:,:,end] .* profits)
-
     # Calculate optimal policies
     # expected margginal values
     EVkPrime = reshape(VkPrime,(n_par.nm,n_par.nk, n_par.ny))
     EVmPrime = reshape(VmPrime,(n_par.nm,n_par.nk, n_par.ny))
+    eff_intPrime = (retLPrime .* APrime .+ (m_par.Rbar.*(n_par.mesh_m.<=0.0))) ./ πPrime
 
     @views @inbounds begin
         for mm = 1:n_par.nm

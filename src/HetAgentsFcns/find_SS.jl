@@ -67,11 +67,13 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         wSS       = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS       = output(KSS,1.0,NSS, m_par)
         ProfitsSS = profitsSS_fnc(YSS,m_par)
+        println("first ProfitSS: ",ProfitsSS)
 
         KSS, BSS, TransitionMatSS,TransitionMatSS_a,TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
                 Ksupply(RLSS(YSS,sum(n_par.dist_guess[:] .* n_par.mesh_m[:]),m_par),1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
-
+        println("first BSS: ", BSS)
+        println("first BSS/YSS: ",BSS/YSS)
         ## bb.) refinement
         ny              = n_par.ny_refined; # eigs in Ksupply quickly increases in runtime in ny
         grid_y, Π, bounds= Tauchen(m_par.ρ_h,ny)
@@ -117,21 +119,26 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS                     = output(KSS,1.0,NSS, m_par)
         ProfitsSS               = profitsSS_fnc(YSS,m_par)
-
+        println("2nd ProfitSS: ",ProfitsSS)
         KSS, BSS, TransitionMatSS, TransitionMatSS_a, TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
                 Ksupply(RLSS(YSS,BSS,m_par),1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
-
+        println("2nd BSS: ",BSS)
+        println("BSS/YSS: ",BSS/YSS)
         VmSS                    = log.(VmSS)
         VkSS                    = log.(VkSS)
         RBSS                    = m_par.RB
         ISS                     = m_par.δ_0*KSS
 
         # Produce distributional summary statistics
-        incgross, inc, av_tax_rateSS, taxrev = incomes(n_par,m_par,distrSS,NSS,1 .+ rSS,wSS,ProfitsSS,RLSS(YSS,BSS,m_par),1.0 ./ m_par.μw,1.0,m_par.τ_prog,m_par.τ_lev,1.0,H)
-
+        incgross, inc, av_tax_rateSS, taxrev = incomes(n_par,m_par,distrSS,NSS,1 .+ rSS,wSS,ProfitsSS,1.0,RLSS(YSS,BSS,m_par),m_par.π,1.0 ./ m_par.μw,1.0,m_par.τ_prog,m_par.τ_lev,1.0,H)
+        println("av_tax_rateSS: ",av_tax_rateSS)
         TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))
-        GSS           = TSS - (m_par.RB./m_par.π-1.0)*BSS
+        println("TSS: ",TSS)
+        println("qΠSS: ",qΠSS_fnc(YSS,m_par))
+        BgovSS        = BSS .- qΠSS_fnc(YSS,m_par)
+        println("BgovSS: ", BgovSS)
+        GSS           = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
 
         distr_m_SS, distr_k_SS, distr_y_SS, share_borrowerSS, GiniWSS, I90shareSS,I90sharenetSS, GiniXSS,
                 sdlogxSS, P9010CSS, GiniCSS, sdlgCSS, P9010ISS, GiniISS, sdlgISS, w90shareSS, P10CSS, P50CSS, P90CSS =

@@ -50,7 +50,7 @@ F[indexes.Glag] = log(GlagPrime) - log(G)
 F[indexes.Ilag] = log(IlagPrime) - log(I)
 F[indexes.wlag] = log(wlagPrime) - log(w)
 F[indexes.Tlag] = log(TlagPrime) - log(T)
-
+F[indexes.qΠlag]  = log(qΠlagPrime)   - log(qΠ)
 F[indexes.qlag] = log(qlagPrime) - log(q)
 F[indexes.Nlag] = log(NlagPrime) - log(N)
 F[indexes.Clag] = log(ClagPrime) - log(C)
@@ -93,7 +93,7 @@ F[indexes.RB]   = log(RBPrime) - Xss[indexes.RBSS] -
 # Tax rule
 F[indexes.τprog]   = log(τprog) - m_par.ρ_P * log(τproglag)  - (1.0 - m_par.ρ_P) *
                   (Xss[indexes.τprogSS]) - (1.0 - m_par.ρ_P) * m_par.γ_YP * log(Y/Y_GAP) -
-                  (1.0 - m_par.ρ_P) * m_par.γ_BP * (log(B)- Xss[indexes.BSS])  - log(Tprogshock)
+                  (1.0 - m_par.ρ_P) * m_par.γ_BP * (log(Bgov)- Xss[indexes.BgovSS])  - log(Tprogshock)
 
 tax_prog_scale   = (m_par.γ + m_par.τ_prog)/((m_par.γ + τprog))
 inc              = [ τlev.*((n_par.mesh_y/n_par.H).^tax_prog_scale .*mcw.*w.*N./(Ht)).^(1.0-τprog)] # capital liquidation Income (q=1 in steady state)
@@ -110,16 +110,16 @@ F[indexes.τlev] = av_tax_rate - (distrSS[:]' * taxrev[:])./(distrSS[:]' * incgr
 F[indexes.T]    = log(T) - log(distrSS[:]' * taxrev[:] + av_tax_rate*((1.0 .- mcw).*w.*N))
 F[indexes.av_tax_rate]       = log(av_tax_rate) - m_par.ρ_τ * log(av_tax_ratelag)  - (1.0 - m_par.ρ_τ) *(Xss[indexes.av_tax_rateSS]) -
                     (1.0 - m_par.ρ_τ) * m_par.γ_Yτ * log(Y/Y_GAP) -
-                    (1.0 - m_par.ρ_τ) * m_par.γ_Bτ * (log(B)- Xss[indexes.BSS])  - log(Tlevshock)
+                    (1.0 - m_par.ρ_τ) * m_par.γ_Bτ * (log(Bgov)- Xss[indexes.BgovSS])  - log(Tlevshock)
 
 
 # --------- Controls ------------
 # Deficit rule
-F[indexes.π]   = log(BgrowthPrime) + m_par.γ_B * (log(B)- Xss[indexes.BSS])  -
+F[indexes.π]   = log(BgovPrime/Bgov) + m_par.γ_B * (log(Bgov)- Xss[indexes.BgovSS])  -
                  m_par.γ_Y * (log(Y/Y_GAP))  -
                  m_par.γ_π * log(π) - log(Gshock)
 
-F[indexes.G] = log(G) - log(BPrime + T - RB/π*B)
+F[indexes.G] = log(G) - log(BgovPrime + T - RB/π*Bgov)
 
 # Phillips Curve to determine equilibrium markup, output, factor incomes (!!add irrelevant shifters of beta!!)
 F[indexes.mc]   = (log.(π)- Xss[indexes.πSS]) -
@@ -142,8 +142,11 @@ F[indexes.mcww] =  log.(mcww) - log.(mcw * w)   # wages
 
 F[indexes.w]    = log.(w) - log.(wage(Kserv, Z * mc, N, m_par))  # wages (NEW)
 
-F[indexes.profits] = log.(profits) - log.(Y * (1.0 - mc))     # profits: + price setting profits + investment profits missing, but =0 on the margin
+F[indexes.firm_profits] = log.(firm_profits) - log.(Y * (1.0 - mc))     # profits: + price setting profits + investment profits missing, but =0 on the margin
 
+F[indexes.profits] = log.(profits)  - log.((1.0 .- m_par.ωΠ) .* firm_profits .+ m_par.ιΠ .* qΠ) # distributed profits to entrepreneurs
+
+F[indexes.qΠ] = log.(RBPrime ./ πPrime) .- log.((qΠPrime.* (1 .- m_par.ιΠ) .+ m_par.ωΠ .* profitsPrime) ./ qΠ )
 
 F[indexes.q]    = 1.0 - ZI * q * (1.0 - m_par.ϕ / 2.0 * (Igrowth - 1.0)^2.0 - # price of capital investment adjustment costs
                    m_par.ϕ * (Igrowth - 1.0) )  -
@@ -158,6 +161,7 @@ F[indexes.C]   = log.(Y .- G .- I .+ (A .- 1.0) .* RB .* B ./ π .- (δ_1 * (u -
 # Error Term on prices/aggregate summary vars (logarithmic, controls), here difference to SS value
 # averages
 F[indexes.K]      = log.(K)     - Xss[indexes.KSS]
+F[indexes.Bgov]         = log.(B)     - log.(Bgov + qΠlag)                                 # total liquidity demand
 F[indexes.B]      = log.(B)     - Xss[indexes.BSS]
 F[indexes.BY]     = log.(BY)    -  log.(B/Y)
 F[indexes.TY]     = log.(TY)    -  log.(T/Y)
