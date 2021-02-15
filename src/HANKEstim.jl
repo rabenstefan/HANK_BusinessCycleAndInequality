@@ -16,7 +16,7 @@ using Arpack: eigs; using SpecialFunctions: erf; using FFTW: dct
 using Parameters, Setfield, MCMCChains, StatsPlots, Optim, CSV, OrderedCollections
 using Flatten; import Flatten: flattenable
 using FieldMetadata; import FieldMetadata: prior, label
-using JSON
+using JSON, KrylovKit
 using IncompleteLU, IterativeSolvers
 
 export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, montecarlo,

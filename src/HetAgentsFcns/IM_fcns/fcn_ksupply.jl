@@ -124,19 +124,20 @@ function Ksupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
     #     distr, dist, count = MultipleDirectTransition(m_a_star, m_n_star, k_a_star, distr, m_par.λ, n_par.Π, n_par)
     # else
         # Calculate left-hand unit eigenvector (seems slow!!!)
-    # Use GMRES (Krylov iteration) with incomplete LU-preconditioning to solve for x: Ax = 0
-    A = TransitionMat' - sparse(I,N,N)
-    LU = ilu(A,τ=0.001)
-    # starting guess
-    x = fill(1/N,N)
-    gmres!(x,A,zeros(N),Pl=LU)
+    aux = real.(eigsolve(TransitionMat', 1)[2][1])
+    # # Use GMRES (Krylov iteration) with incomplete LU-preconditioning to solve for x: Ax = 0
+    # A = TransitionMat' - sparse(I,N,N)
+    # LU = ilu(A,τ=0.001)
+    # # starting guess
+    # x = fill(1/N,N)
+    # gmres!(x,A,zeros(N),Pl=LU)
     #     aux::Array{Float64,2} = eigs(TransitionMat';nev=1,sigma=1)[2]
     #     if isreal(aux)
     #         aux = real(aux)
     #     else
     #         error("complex eigenvector of transition matrix")
     #     end
-    distr = reshape((x[:])./sum((x[:])),  (n_par.nm, n_par.nk, n_par.ny))
+    distr = reshape((aux[:])./sum((aux[:])),  (n_par.nm, n_par.nk, n_par.ny))
     # end
     #-----------------------------------------------------------------------------
     # Calculate capital stock

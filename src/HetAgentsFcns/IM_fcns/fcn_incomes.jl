@@ -12,9 +12,7 @@ function incomes(n_par,m_par,distr,N,r,w,profits,A,RL,π,mcw,q,τprog,τlev,Ht,H
     eff_int   = (RL .* A .+ (m_par.Rbar .* (n_par.mesh_m.<=0.0))) ./ π # effective rate
     tax_prog_scale = (m_par.γ + m_par.τ_prog)/((m_par.γ + τprog))
     GHHFA = ((m_par.γ - τprog)/(m_par.γ+1)) # transformation (scaling) for composite good
-    
-    incgross = Array{Array{Float64, 3}}(undef, 6)
-    inc = Array{Array{Float64, 3}}(undef, 6)
+
     # mcw = 1.0 ./ m_par.μw
     incgross =[  mcw .*w .*N ./(Ht) .*(n_par.mesh_y ./H) .^tax_prog_scale .+
         (1.0 .- mcw).*w.*N,# labor income (NEW)
@@ -25,6 +23,7 @@ function incomes(n_par,m_par,distr,N,r,w,profits,A,RL,π,mcw,q,τprog,τlev,Ht,H
     incgross[1][:,:,end].= n_par.mesh_y[:,:,end] .* profits  # profit income net of taxes
     incgross[5][:,:,end].= n_par.mesh_y[:,:,end] .* profits  # profit income net of taxes
     
+    inc = Array{Array{eltype(N), 3}}(undef, 6)
     inc[6] = τlev.*((n_par.mesh_y ./H).^tax_prog_scale .*mcw.*w.*N./(Ht)).^(1.0 .- τprog)
     inc[6][:,:,end] .= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0 .- τprog) # profit income net of taxes
 
@@ -40,5 +39,5 @@ function incomes(n_par,m_par,distr,N,r,w,profits,A,RL,π,mcw,q,τprog,τlev,Ht,H
     inc[1][:,:,end].= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0 .- τprog)  # profit income net of taxes
     inc[5][:,:,end].= 0.0
 
-return incgross, inc, av_tax_rate, taxrev
+return incgross, inc, av_tax_rate, taxrev, tax_prog_scale
 end

@@ -126,9 +126,8 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     ############################################################################
     # Return on liquid assets (gvmt bonds and profit shares)
     retL = RL(RB,qΠlag,qΠ,B,π,firm_profits,m_par)
-    retLPrime = RL(RBPrime,qΠ,qΠPrime,BPrime,πPrime,firm_profitsPrime,m_par)
     # Incomes
-    incgross, inc = incomes(n_par,m_par,distr,N,r,w,profits,A,retL,π,mcw,q,τprog,τlev,Ht,H)
+    incgross, inc,~,~,tax_prog_scale = incomes(n_par,m_par,distr,N,r,w,profits,A,retL,π,mcw,q,τprog,τlev,Ht,H)
     if balanced_budget
         # Rebate government spending lump-sum to all households
         inc[1] .= inc[1] .+ G
@@ -137,7 +136,7 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     # expected margginal values
     EVkPrime = reshape(VkPrime,(n_par.nm,n_par.nk, n_par.ny))
     EVmPrime = reshape(VmPrime,(n_par.nm,n_par.nk, n_par.ny))
-    eff_intPrime = (retLPrime .* APrime .+ (m_par.Rbar.*(n_par.mesh_m.<=0.0))) ./ πPrime
+    eff_intPrime = (RBPrime .* APrime .+ (m_par.Rbar.*(n_par.mesh_m.<=0.0))) ./ πPrime
 
     @views @inbounds begin
         for mm = 1:n_par.nm
@@ -147,7 +146,7 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     end
     # roughly 20% time
     c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid =
-                    EGM_policyupdate(EVmPrime ,EVkPrime ,q,π,RB.*A,1.0,inc,n_par,m_par, false) # policy iteration
+                    EGM_policyupdate(EVmPrime ,EVkPrime ,q,π,retL .*A,1.0,inc,n_par,m_par, false) # policy iteration
     if(ret_pol_fcts)
         return c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid, inc, incgross, distr
     end
