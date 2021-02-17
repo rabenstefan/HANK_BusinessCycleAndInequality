@@ -71,7 +71,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
 
         KSS, BSS, TransitionMatSS,TransitionMatSS_a,TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-                Ksupply(RLSS(YSS,sum(n_par.dist_guess[:] .* n_par.mesh_m[:]),m_par),1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
+                Ksupply(RLSS_fnc(YSS,sum(n_par.dist_guess[:] .* n_par.mesh_m[:]),m_par),1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
         println("first BSS: ", BSS)
         println("first BSS/YSS: ",BSS/YSS)
         ## bb.) refinement
@@ -119,10 +119,11 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS                     = output(KSS,1.0,NSS, m_par)
         ProfitsSS               = profitsSS_fnc(YSS,m_par)
+        RLSS                    = RLSS_fnc(YSS,BSS,m_par)
         println("2nd ProfitSS: ",ProfitsSS)
         KSS, BSS, TransitionMatSS, TransitionMatSS_a, TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-                Ksupply(RLSS(YSS,BSS,m_par),1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
+                Ksupply(RLSS,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
         println("2nd BSS: ",BSS)
         println("BSS/YSS: ",BSS/YSS)
         VmSS                    = log.(VmSS)
@@ -131,7 +132,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         ISS                     = m_par.δ_0*KSS
 
         # Produce distributional summary statistics
-        incgross, inc, av_tax_rateSS, taxrev = incomes(n_par,m_par,distrSS,NSS,1 .+ rSS,wSS,ProfitsSS,1.0,RLSS(YSS,BSS,m_par),m_par.π,1.0 ./ m_par.μw,1.0,m_par.τ_prog,m_par.τ_lev,1.0,H)
+        incgross, inc, av_tax_rateSS, taxrev = incomes(n_par,m_par,distrSS,NSS,1 .+ rSS,wSS,ProfitsSS,1.0,RLSS,m_par.π,1.0 ./ m_par.μw,1.0,m_par.τ_prog,m_par.τ_lev,1.0,H)
         println("av_tax_rateSS: ",av_tax_rateSS)
         TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))
         println("TSS: ",TSS)

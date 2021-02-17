@@ -18,7 +18,7 @@ function Kdiff(K_guess::Float64, n_par::NumericalParameters, m_par)
     w       = wage(K_guess,1 ./m_par.μ,N, m_par)
     Y = output(K_guess,1.0,N,m_par)
     profits = profitsSS_fnc(Y,m_par)
-    RL = RLSS(Y,sum(n_par.dist_guess[:] .* n_par.mesh_m[:]),m_par)
+    RL = RLSS_fnc(Y,sum(n_par.dist_guess[:] .* n_par.mesh_m[:]),m_par)
     K::Float64   = Ksupply(RL,1.0+r,w*N/n_par.H,profits,n_par,m_par)[1]
     diff    = K - K_guess
     return diff
