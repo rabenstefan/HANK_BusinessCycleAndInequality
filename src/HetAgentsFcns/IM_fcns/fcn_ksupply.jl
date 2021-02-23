@@ -36,18 +36,19 @@ function Ksupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,profit_gue
 
     inc = Array{Array{Float64,3}}(undef,4)
     mcw = 1.0 ./ m_par.μw
+    entr_laborinc = m_par.y_e .* mcw .* w_guess
 
     # labor income
     incgross = n_par.grid_y .* mcw.*w_guess
-    incgross[end]= n_par.grid_y[end]*profit_guess
+    incgross[end]= n_par.grid_y[end]*profit_guess .+ entr_laborinc
     incnet   = m_par.τ_lev.*(mcw.*w_guess.*n_par.grid_y).^(1.0-m_par.τ_prog)
-    incnet[end]= m_par.τ_lev.*(n_par.grid_y[end] .* profit_guess).^(1.0-m_par.τ_prog)
+    incnet[end]= m_par.τ_lev.*((n_par.grid_y[end] .* profit_guess).^(1.0-m_par.τ_prog) .+ (entr_laborinc).^(1.0 .- m_par.τ_prog))
     av_tax_rate = dot((incgross - incnet),distr_y)./dot((incgross),distr_y)
 
     GHHFA=((m_par.γ - m_par.τ_prog)/(m_par.γ+1)) # transformation (scaling) for composite good
     inc[1] = GHHFA.*m_par.τ_lev.*(n_par.mesh_y.*mcw.*w_guess).^(1.0-m_par.τ_prog) .+
              (1.0 .- mcw).*w_guess*n_par.H.*(1.0 .- av_tax_rate)# labor income net of taxes
-    inc[1][:,:,end]= m_par.τ_lev.*(n_par.mesh_y[:,:,end]*profit_guess).^(1.0-m_par.τ_prog) # profit income net of taxes
+    inc[1][:,:,end]= m_par.τ_lev.*((n_par.mesh_y[:,:,end]*profit_guess).^(1.0-m_par.τ_prog) .+ GHHFA .* (entr_laborinc).^(1.0 .- m_par.τ_prog)) # profit income net of taxes
     # rental income
     inc[2] = (R_guess-1.0).* n_par.mesh_k
     # liquid asset Income

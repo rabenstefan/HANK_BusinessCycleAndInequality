@@ -119,7 +119,7 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
 
     # Average Human Capital =
     # average productivity (at the productivit grid, used to normalize to 0)
-    H       = dot(distr_y[1:end-1],n_par.grid_y[1:end-1])
+    H       = H_fnc(n_par.grid_y,distr_y,m_par)
 
     ############################################################################
     #               III. 2. Heterogeneous Agent Part                           #
@@ -177,7 +177,7 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
         =# sdlogxact, P9010Cact, GiniCact, sdlgCact, P9010Iact, GiniIact, sdlogyact, w90shareact, P10Cact, P50Cact, P90Cact =
         distrSummaries(distr,c_a_star, c_n_star, n_par, inc, incgross, m_par)
 
-    Htact       = dot(distr_y[1:end-1],(n_par.grid_y[1:end-1]/H).^(tax_prog_scale))
+    Htact       = dot(distr_y[1:end],([n_par.grid_y[1:end-1];m_par.y_e]/H).^(tax_prog_scale))
     F[indexes.Ht]     =log.(Ht) - log.(Htact)
     F[indexes.GiniX]    = log.(GiniX)   - log.(GiniXact)
     F[indexes.I90share]   = log.(I90share)  - log.(I90shareact);

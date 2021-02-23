@@ -28,6 +28,7 @@ julia> priors = collect(metaflatten(m_par, prior,flattenable))
 	σ_h::T = 0.12   | "sigma" | L"\sigma" |  _  | false # std of income shocks (steady state)
 	ι::T = 1/16   | "iota" | L"\iota" |  _  | false # probability to return worker
 	ζ::T = 1/5000 | "zeta" | L"\zeta" |  _  | false # probability to become entrepreneur
+	y_e::T = 0.0 | "y_e" | L"y_e" | _ | false # productivity of entrepreneur
 
 	# Technological parameters
 	α::T = 0.318  | "alpha" | L"\alpha" |  _  | false # capital share

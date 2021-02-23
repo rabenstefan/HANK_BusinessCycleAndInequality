@@ -97,10 +97,10 @@ F[indexes.τprog]   = log(τprog) - m_par.ρ_P * log(τproglag)  - (1.0 - m_par.
 
 tax_prog_scale   = (m_par.γ + m_par.τ_prog)/((m_par.γ + τprog))
 inc              = [ τlev.*((n_par.mesh_y/n_par.H).^tax_prog_scale .*mcw.*w.*N./(Ht)).^(1.0-τprog)] # capital liquidation Income (q=1 in steady state)
-inc[1][:,:,end] .= τlev.*(n_par.mesh_y[:,:,end] .* profits).^(1.0-τprog) # profit income net of taxes
+inc[1][:,:,end] .= τlev.*((n_par.mesh_y[:,:,end] .* profits).^(1.0-τprog) .+ ((m_par.y_e/n_par.H).^tax_prog_scale .*mcw .*w .*N ./(Ht)).^(1.0 .- τprog)) # profit income net of taxes
 
 incgross =[ ((n_par.mesh_y/n_par.H).^tax_prog_scale .*mcw.*w.*N./(Ht))] # capital liquidation Income (q=1 in steady state)
-            incgross[1][:,:,end].= (n_par.mesh_y[:,:,end] .* profits)
+incgross[1][:,:,end].= (n_par.mesh_y[:,:,end] .* profits) .+ (m_par.y_e/n_par.H).^tax_prog_scale .*mcw .*w .*N ./(Ht)
 
 taxrev   = incgross[1] .- inc[1]
 incgrossaux = incgross[1]

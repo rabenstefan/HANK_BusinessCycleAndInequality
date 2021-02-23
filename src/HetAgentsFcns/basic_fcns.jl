@@ -21,6 +21,8 @@ qΠSS_fnc(Y::Number,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(m_par.RB 
 RL_fnc(RB,qΠlag,qΠ,B,π,firm_profits,m_par) = (B.*RB .+ π .*(qΠ .* (1 .- m_par.ιΠ) .+ m_par.ωΠ .* firm_profits))./(B .+ qΠlag)
 # steady state liquid return
 RLSS_fnc(Y::Number,B::Number,m_par) = RL_fnc(m_par.RB,qΠSS_fnc(Y,m_par),qΠSS_fnc(Y,m_par),B,m_par.π,(1.0 .- 1.0 ./ m_par.μ).*Y,m_par)
+# Average labor productivity (possibly with entrepreneur)
+H_fnc(grid_y,distr_y,m_par) = dot([grid_y[1:end-1];m_par.y_e],distr_y)
 
 @doc raw"""
     distrSummaries(distr,c_a_star,c_n_star,n_par,inc,incgross,m_par)
@@ -71,7 +73,6 @@ function distrSummaries(distr::AbstractArray,c_a_star::AbstractArray,
     x[:,:,:,1]      = c_a_star
     x[:,:,:,2]      = c_n_star;
     aux_x           = inc[5]#(1 .- m_par.τ_bar).*(1.0 ./ m_par.μw).*w.*N.*n_par.mesh_y./(m_par.γ+1);
-    aux_x[:,:,end]  = zeros(n_par.nm,n_par.nk);
     c[:,:,:,1]      = x[:,:,:,1] +aux_x;
     c[:,:,:,2]      = x[:,:,:,2] +aux_x;
     distr_x[:,:,:,1] = m_par.λ .* distr

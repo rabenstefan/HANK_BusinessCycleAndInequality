@@ -29,7 +29,7 @@ function Fsys_agg(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}
 
     distr_y = sum(distrSS, dims=(1,2))
 
-    Htact       = dot(distr_y[1:end-1],(n_par.grid_y[1:end-1]/n_par.H).^((m_par.γ + m_par.τ_prog)/(m_par.γ + τprog)))
+    Htact       = dot(distr_y[1:end],([n_par.grid_y[1:end-1];m_par.y_e]/n_par.H).^((m_par.γ + m_par.τ_prog)/(m_par.γ + τprog)))
     F[indexes.Ht]     =log.(Ht) - log.(Htact)
     return F
 end

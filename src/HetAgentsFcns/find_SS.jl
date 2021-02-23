@@ -39,7 +39,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
                         (m_par.ζ .+ m_par.ι)/m_par.ζ]
         # Calculate expected level of human capital
         Paux            = Π^1000
-        H               = (Paux[1,1:end-1]'*grid_y[1:end-1])
+        H               = H_fnc(grid_y,Paux[1,:],m_par)
         # Numerical parameters
         n_par           = NumericalParameters(ny = ny+1, bounds_y = bounds, grid_y = grid_y, Π = Π, H = H)
 
@@ -89,7 +89,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         grid_y          = [exp.(grid_y .* m_par.σ_h ./ sqrt(1.0 .- m_par.ρ_h.^2));
                         (m_par.ζ .+ m_par.ι)/m_par.ζ]
         Paux            = Π^1000
-        H               = (Paux[1,1:end-1]'*grid_y[1:end-1])
+        H               = H_fnc(grid_y,Paux[1,:],m_par)
 
         # Write changed parameter values to n_par
         @set! n_par.ny          = ny + 1
