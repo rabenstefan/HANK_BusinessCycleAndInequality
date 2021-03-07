@@ -74,6 +74,20 @@ macro writeXSS(state_names,control_names)
     return esc(ex)
 end
 
+macro writeXSSaggr(state_names,control_names)
+    ex = quote XSSaggr=[0.0] end
+    for j in [state_names;control_names]
+            varnameSS = Symbol(j,"SS")
+            ex_aux = quote
+                append!(XSSaggr,log($varnameSS))
+            end
+            append!(ex.args, ex_aux.args)
+    end
+    ex_aux= quote deleteat!(XSSaggr,1) end
+    append!(ex.args, ex_aux.args)
+    return esc(ex)
+end
+
 macro include(filename::AbstractString)
     path = joinpath(dirname(String(__source__.file)), filename)
     return esc(Meta.parse("quote; " * read(path, String) * "; end").args[1])

@@ -27,7 +27,8 @@ export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, 
         load_steadystate, save_steadystate, compute_steadystate, SteadyResults,
         Tauchen, EGM_policyupdate, Kdiff, distrSummaries, @generate_equations,
         @make_deriv, @make_deriv_estim, prioreval, load_n_par, update_XSS, @include,
-        employment, output, wage, MakeTransition, build_transition_matrix, mutil
+        employment, output, wage, MakeTransition, build_transition_matrix, mutil, find_RASS, 
+        RASteadyResults
 
 distr_names=["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share",
 "I90sharenet", "P9010I", "w90share", "P10C", "P50C", "P90C"]
@@ -48,6 +49,7 @@ e_set = EstimationSettings()
 
 include("NumericalBasics.jl")
 include("HetAgentsFcns.jl")
+include("find_RASS.jl")
 include("LinearizationFunctions.jl")
 include("Estimation.jl")
 
@@ -68,6 +70,13 @@ struct SteadyResults
   CDF_k
   CDF_y
   distrSS
+end
+
+struct RASteadyResults
+  XSSaggr
+  indexes_aggr
+  n_par
+  m_par
 end
 
 struct LinearResults
@@ -119,6 +128,20 @@ function save_steadystate(sr::SteadyResults;file="Saves")
   end
 end
 
+function save_steadystate(RAsr::RASteadyResults;file="Saves")
+  save(string(file,"/RAsteadystate.jld2"),Dict("XSSaggr" => RAsr.XSSaggr))
+  structs = [:m_par,:n_par]
+  for istr = 1:2
+    filestr = string(file,"/RA", String(structs[istr]),".json")
+    if isfile(filestr)
+      rm(filestr)
+    end
+    open(filestr,"w") do f
+      JSON.print(f,getfield(RAsr,structs[istr]),4)
+    end
+  end
+end
+
 @doc raw"""
     load_steadystate()
 
@@ -144,6 +167,21 @@ function load_steadystate(;file="Saves",ModelParamStruct = ModelParameters)
                                                               CDF_SS, x, y, z)
   return SteadyResults(XSSnew, XSSaggr_new, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par,
   CDF_SS, CDF_m, CDF_k, CDF_y, distrSS)
+end
+
+function load_RAsteadystate(;file="Saves",ModelParamStruct = ModelParameters)
+  dictmpar = JSON.parsefile(string(file,"/RAm_par.json"))
+  mpairs = Array{Pair{Symbol,Any},1}()
+  for (k,v) in dictmpar
+    push!(mpairs,Pair{Symbol,Any}(Symbol(k),v))
+  end
+  m_par = ModelParamStruct(;mpairs...)
+  n_par = load_n_par(string(file,"/RAn_par.json"))
+  @load string(file,"/steadystate.jld2") XSSaggr
+  # produce indexes to access XSS etc.
+  indexes_aggr = produce_indexes_aggr(n_par)
+  XSSaggr_new = reorder_XSSaggr(XSSaggr,n_par.aggr_names,indexes_aggr)
+  return RASteadyResults(XSSaggr_new, indexes_aggr, n_par, m_par)
 end
 
 function load_n_par(file)
@@ -212,6 +250,14 @@ function reorder_XSS(oldXSS,aggr_names,n_states,indexesNew,indexes_aggrNew)
   end
 
   return XSS, XSSaggr
+end
+
+function reorder_XSSaggr(oldXSSaggr,aggr_names,indexes_aggrNew)
+  XSSaggr = zeros(length(aggr_names))
+  for (i,s) in enumerate(aggr_names)
+    XSSaggr[getfield(indexes_aggrNew,Symbol(s,"SS"))] = oldXSSaggr[i]
+  end
+  return XSSaggr
 end
 
 function update_XSS(oldXSS,indexesOld,newSSvals,state_names,control_names)
