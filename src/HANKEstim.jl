@@ -28,7 +28,7 @@ export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, 
         Tauchen, EGM_policyupdate, Kdiff, distrSummaries, @generate_equations,
         @make_deriv, @make_deriv_estim, prioreval, load_n_par, update_XSS, @include,
         employment, output, wage, MakeTransition, build_transition_matrix, mutil, find_RASS, 
-        RASteadyResults
+        RASteadyResults, update_XSSaggr, load_RAsteadystate, linearize_RAmodel
 
 distr_names=["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share",
 "I90sharenet", "P9010I", "w90share", "P10C", "P50C", "P90C"]
@@ -299,6 +299,20 @@ function update_XSS(oldXSS,indexesOld,newSSvals,state_names,control_names)
 
   return XSS, XSSaggr
 end
+function update_XSSaggr(oldXSSaggr,indexes_aggrOld,newSSvals,aggr_names)
+  XSSaggr = [0.0]
+  for j in aggr_names
+    varnameSS = Symbol(j,"SS")
+    if in(varnameSS,keys(newSSvals))
+      val = newSSvals[varnameSS]
+    else
+      val = oldXSSaggr[getfield(indexes_aggrOld,varnameSS)]
+    end
+    append!(XSSaggr,val)
+  end
+  deleteat!(XSSaggr,1)
+  return XSSaggr
+end
 
 @doc raw"""
     compute_steadystate()
@@ -340,6 +354,17 @@ function linearize_full_model(sr::SteadyResults;Fsys_agg::Function = Fsys_agg,ba
     B=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
     State2Control, LOMstate, SolutionError, nk, A, B = SGU(sr.XSS, copy(A), copy(B), sr.m_par, sr.n_par, sr.indexes, sr.Copula, sr.compressionIndexes, sr.distrSS; estim = false, Fsys_agg = Fsys_agg,balanced_budget=balanced_budget)
     return LinearResults(State2Control, LOMstate, A, B, SolutionError)
+end
+
+function linearize_RAmodel(sr::RASteadyResults;FRAsys::Function = FRAsys)
+    A=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
+    B=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
+    F(x,xP) = FRAsys(x,xP,sr.XSSaggr,sr.m_par,sr.n_par,sr.indexes_aggr)
+    BA = ForwardDiff.jacobian(x->F(x[1:sr.n_par.ntotal],x[sr.n_par.ntotal+1:end]),zeros(2*sr.n_par.ntotal))
+    B = BA[:,1:sr.n_par.ntotal]
+    A = BA[:,sr.n_par.ntotal+1:end]
+    gx,hx,alarm_sgu,nk = SolveDiffEq(A,B,sr.n_par)
+    return LinearResults(gx,hx,A,B,alarm_sgu)
 end
 
 @doc raw"""

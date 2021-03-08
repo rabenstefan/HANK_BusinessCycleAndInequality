@@ -29,6 +29,9 @@ firm_profitsSS = (1.0 - mcSS) .* YSS
 println("firm_profitsSS: ", firm_profitsSS)
 qΠSS      = qΠSS_fnc(YSS,m_par)
 qΠlagSS   = qΠSS
+# only relevant for representative portfolio
+KstateSS = KSS
+BtoKSS = BSS/KSS
 
 BYSS   = BSS/YSS
 

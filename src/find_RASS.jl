@@ -5,7 +5,7 @@ function VFI(Kgrid,BtoK,av_tax_rate,m_par;tol = 1.0e-16)
         w = [wage(Kgrid[i],1.0/m_par.μ,N[i],m_par) for i in 1:length(Kgrid)]
         Y = [output(Kgrid[i],1.0,N[i],m_par) for i in 1:length(Kgrid)]
         qΠ = [qΠSS_fnc(y,m_par) for y in Y]
-        Rtot = [Rtot_fnc(Kgrid[i],BtoK,qΠ,Y[i],N[i],m_par) for i in 1:length(Kgrid)]
+        Rtot = [Rtot_fnc(Kgrid[i],BtoK,qΠ[i],Y[i],N[i],m_par) for i in 1:length(Kgrid)]
         Π = Y .* (1.0 .- 1/m_par.μ)
         y = (1.0 .- av_tax_rate).*(w.*N) * (m_par.γ + m_par.τ_prog)/(m_par.γ + 1.0)
         x = (y .+ (Rtot .- m_par.δ_0).*Kgrid .+ (1.0 .- av_tax_rate).*Π) .- Kgrid'
@@ -23,7 +23,7 @@ function VFI(Kgrid,BtoK,av_tax_rate,m_par;tol = 1.0e-16)
 end
 
 @doc raw"""
-    find_RASS(state_names,control_names;ModelParamStruct,flattenable,path)
+    find_RASS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct,flattenable,path)
 
 Find the stationary equilibrium of the representative agent model.
 
@@ -43,6 +43,7 @@ function find_RASS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct =
         @set! n_par.naggrcontrols = length(control_names)
         @set! n_par.aggr_names  = [state_names; control_names]
         @set! n_par.naggr       = length(n_par.aggr_names)
+        @set! n_par.ntotal      = n_par.naggr
         # load estimated parameter set
         m_par           = ModelParamStruct( )
         @load string(path,"/",e_set.mode_start_file) par_final parnames
@@ -52,6 +53,7 @@ function find_RASS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct =
         else
         m_par = Flatten.reconstruct(m_par, par, flattenable)
         end
+        @set! m_par.τ_prog = 0.0
         # -------------------------------------------------------------------------------
         ## STEP 1: Find the stationary equilibrium
         # -------------------------------------------------------------------------------
@@ -75,6 +77,8 @@ function find_RASS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct =
         TSS                     = av_tax_rate*(wSS*NSS + YSS*(1.0 - 1.0/m_par.μ))
         GSS                     = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
         @include "input_aggregate_steady_state.jl"
+        # Define aggregates that concern distributions with fake values
+        @setDistrSSvals
         @writeXSSaggr state_names control_names
         indexes_aggr = produce_indexes_aggr(n_par)
         return XSSaggr, indexes_aggr, n_par, m_par

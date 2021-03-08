@@ -76,6 +76,8 @@ end
 
 macro writeXSSaggr(state_names,control_names)
     ex = quote XSSaggr=[0.0] end
+    state_names = Base.eval(Main,state_names)
+    control_names = Base.eval(Main,control_names)
     for j in [state_names;control_names]
             varnameSS = Symbol(j,"SS")
             ex_aux = quote
@@ -85,6 +87,18 @@ macro writeXSSaggr(state_names,control_names)
     end
     ex_aux= quote deleteat!(XSSaggr,1) end
     append!(ex.args, ex_aux.args)
+    return esc(ex)
+end
+
+macro setDistrSSvals()
+    ex = quote end
+    for name in ["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share", "I90sharenet","P9010I", "w90share", "P10C", "P50C", "P90C"]
+        varnameSS = Symbol(name,"SS")
+        ex_aux = quote
+            $varnameSS = 1.0        
+        end
+        append!(ex.args,ex_aux.args)
+    end
     return esc(ex)
 end
 
