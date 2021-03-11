@@ -32,7 +32,7 @@ function FRAsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, 
     F[indexes.K] = log.(K) .- log.(Kstate)
     F[indexes.B] = log.(B) .- log.(BtoK.*K)
     # BtoK (no-arbitrage condition)
-    F[indexes.BtoK] = log.(RBPrime./πPrime) .- (rPrime .+ qPrime)./q
+    F[indexes.BtoK] = log.(RLPrime./πPrime) .- (rPrime .+ qPrime)./q
 
     F[indexes.Ht] = log.(Ht) .- Xss[indexes.HtSS]
     return F
