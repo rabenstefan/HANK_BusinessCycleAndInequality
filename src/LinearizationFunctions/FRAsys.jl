@@ -20,7 +20,7 @@ function FRAsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, 
     @include "../input_aggregate_model.jl"
     # change some rules: taxlev, T
     F[indexes.τlev] = log.(1.0 .- av_tax_rate) .- log.(τlev)
-    F[indexes.T]    = log.(T) .- log.(av_tax_rate.*(w.*N .+ firm_profits))
+    F[indexes.T]    = log.(T) .- log.(av_tax_rate.*(w.*N .+ profits))
     # C (with euler equ), K (state transition), B (from BtoK)
     # composite consumption X
     X = C - τlev.*(w.*N) * (1.0 - m_par.τ_prog)/(m_par.γ + 1.0)
@@ -32,7 +32,7 @@ function FRAsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, 
     F[indexes.K] = log.(K) .- log.(Kstate)
     F[indexes.B] = log.(B) .- log.(BtoK.*K)
     # BtoK (no-arbitrage condition)
-    F[indexes.BtoK] = log.(RLPrime./πPrime) .- (rPrime .+ qPrime)./q
+    F[indexes.BtoK] = log.(RLPrime./πPrime) .- log.((rPrime .+ qPrime)./q)
 
     F[indexes.Ht] = log.(Ht) .- Xss[indexes.HtSS]
     return F
