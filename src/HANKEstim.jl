@@ -177,7 +177,7 @@ function load_RAsteadystate(;file="Saves",ModelParamStruct = ModelParameters)
   end
   m_par = ModelParamStruct(;mpairs...)
   n_par = load_n_par(string(file,"/RAn_par.json"))
-  @load string(file,"/steadystate.jld2") XSSaggr
+  @load string(file,"/RAsteadystate.jld2") XSSaggr
   # produce indexes to access XSS etc.
   indexes_aggr = produce_indexes_aggr(n_par)
   XSSaggr_new = reorder_XSSaggr(XSSaggr,n_par.aggr_names,indexes_aggr)
