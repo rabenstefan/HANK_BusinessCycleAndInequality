@@ -1,14 +1,13 @@
 
-function VFI(Kgrid,BtoK,av_tax_rate,m_par;tol = 1.0e-16)
+function VFI(Kgrid,av_tax_rate,m_par;tol = 1.0e-16)
         # construct (composite) consumption over states (Kgrid)
         N = [employment(K,1.0 / (m_par.μ * m_par.μw),m_par) for K in Kgrid]
         w = [wage(Kgrid[i],1.0/m_par.μ,N[i],m_par) for i in 1:length(Kgrid)]
         Y = [output(Kgrid[i],1.0,N[i],m_par) for i in 1:length(Kgrid)]
-        qΠ = [qΠSS_fnc(y,m_par) for y in Y]
-        Rtot = [Rtot_fnc(Kgrid[i],BtoK,qΠ[i],Y[i],N[i],m_par) for i in 1:length(Kgrid)]
-        Π = Y .* (1.0 .- 1/m_par.μ)
+        R = [interest(Kgrid[i],1.0 / m_par.μ, N[i], m_par) + 1.0 for i in 1:length(Kgrid)]
+        Π = [profitsSS_fnc(Y[i],R[i],m_par) for i in 1:length(Kgrid)]
         y = (1.0 .- av_tax_rate).*(w.*N) * (m_par.γ + m_par.τ_prog)/(m_par.γ + 1.0)
-        x = (y .+ (Rtot .- m_par.δ_0).*Kgrid .+ (1.0 .- av_tax_rate).*Π) .- Kgrid'
+        x = (y .+ R .* Kgrid .+ (1.0 .- av_tax_rate).*Π) .- Kgrid'
         u = x.^ (1.0 .- m_par.ξ)
         # value function iteration
         V = ones(size(Kgrid))
@@ -61,21 +60,21 @@ function find_RASS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct =
         Kmax      = 2.0 * ((m_par.δ_0 - 0.0025 + (1.0 - m_par.β) / m_par.β) / m_par.α)^(1.0 / (m_par.α - 1.0))
         Kmin      = 1.0 * ((m_par.δ_0 - 0.0005 + (1.0 - m_par.β) / m_par.β) / m_par.α)^(0.5 / (m_par.α - 1.0))
         K         = range(.9*Kmin, stop = 1.2*Kmax, length = 1000)
-        KSS = VFI(collect(K),BtoK,av_tax_rate,m_par)
+        KSS = VFI(collect(K),av_tax_rate,m_par)
         # c.) Calculate other equilibrium quantities
         NSS                     = employment(KSS, 1.0 ./ (m_par.μ*m_par.μw), m_par)
         rSS                     = interest(KSS,1.0 / m_par.μ, NSS, m_par)
+        RBSS                    = (rSS + 1.0) * m_par.π
         wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS                     = output(KSS,1.0,NSS, m_par)
-        ProfitsSS               = profitsSS_fnc(YSS,m_par)
+        ProfitsSS               = profitsSS_fnc(YSS,RBSS,m_par)
         BSS                     = BtoK*KSS
-        RLSS                    = RLSS_fnc(YSS,BSS,m_par)
-        RBSS                    = m_par.RB
+        RLSS                    = RBSS
         ISS                     = m_par.δ_0*KSS
         av_tax_rateSS           = av_tax_rate
-        BgovSS                  = BSS .- qΠSS_fnc(YSS,m_par)
-        TSS                     = av_tax_rate*(wSS*NSS + YSS*(1.0 - 1.0/m_par.μ))
-        GSS                     = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
+        BgovSS                  = BSS .- qΠSS_fnc(YSS,RBSS,m_par)
+        TSS                     = av_tax_rate*(wSS*NSS + profitsSS_fnc(YSS,RBSS,m_par))
+        GSS                     = TSS - (RBSS/m_par.π-1.0)*BgovSS
         @include "input_aggregate_steady_state.jl"
         # Define aggregates that concern distributions with fake values
         @setDistrSSvals

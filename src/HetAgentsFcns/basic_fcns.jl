@@ -12,17 +12,11 @@ wage(K::Number, A::Number,N::Number, m_par)     = A.* (1-m_par.α) .* (K./N) .^m
 output(K::Number, A::Number,N::Number, m_par)  = A.* K .^(m_par.α).*N .^(1-m_par.α)
 employment(K::Number, A::Number, m_par)     = (A.* (1.0-m_par.α) .* (m_par.τ_lev .* (1.0 - m_par.τ_prog)).^(1.0 /(1.0 - m_par.τ_prog)) .* K .^(m_par.α )).^((1.0 - m_par.τ_prog)./(m_par.γ+m_par.τ_prog+(m_par.α).*(1 - m_par.τ_prog))) # A=TFP*MC
 # steady state payout to entrepreneurs
-profitsSS_fnc(Y::Number, m_par) = (1.0 .- 1.0 ./ m_par.μ) .* Y .* 
-((m_par.RB ./m_par.π .- 1.0) .* (1.0 .- m_par.ωΠ) .+ m_par.ιΠ) ./
-(m_par.RB ./m_par.π .- 1.0 .+ m_par.ιΠ)
+profitsSS_fnc(Y::Number,RB, m_par) = (1.0 .- 1.0 ./ m_par.μ) .* Y .* 
+((RB ./m_par.π .- 1.0) .* (1.0 .- m_par.ωΠ) .+ m_par.ιΠ) ./
+(RB ./m_par.π .- 1.0 .+ m_par.ιΠ)
 # price of tradable stock in steady state
-qΠSS_fnc(Y::Number,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(m_par.RB ./m_par.π .- 1 .+ m_par.ιΠ) 
-# liquid return (ex-post)
-RL_fnc(RB,qΠlag,qΠ,B,π,firm_profits,m_par) = (B.*RB .+ π .*(qΠ .* (1 .- m_par.ιΠ) .+ m_par.ωΠ .* firm_profits))./(B .+ qΠlag)
-# steady state liquid return (ex-post)
-RLSS_fnc(Y::Number,B::Number,m_par) = RL_fnc(m_par.RB,qΠSS_fnc(Y,m_par),qΠSS_fnc(Y,m_par),B,m_par.π,(1.0 .- 1.0 ./ m_par.μ).*Y,m_par)
-# steady state return on all assets (ex-post)
-Rtot_fnc(K,BtoK,qΠ,Y,N,m_par) = (K .* (1.0 .+ interest(K,1.0,N,m_par)) .+ (K .* BtoK .- qΠ) .* m_par.RB .+ (1 - m_par.ιΠ).*qΠ .+ m_par.ωΠ .*profitsSS_fnc(Y,m_par)) ./ (K .* (BtoK .+ 1.0))
+qΠSS_fnc(Y::Number,RB,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(RB ./m_par.π .- 1 .+ m_par.ιΠ) 
 # Average labor productivity (possibly with entrepreneur)
 H_fnc(grid_y,distr_y,m_par) = dot([grid_y[1:end-1];m_par.y_e],distr_y)
 

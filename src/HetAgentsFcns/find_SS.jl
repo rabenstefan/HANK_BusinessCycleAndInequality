@@ -66,12 +66,12 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         rSS       = interest(KSS,1.0 / m_par.μ, NSS, m_par)
         wSS       = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS       = output(KSS,1.0,NSS, m_par)
-        ProfitsSS = profitsSS_fnc(YSS,m_par)
+        ProfitsSS = profitsSS_fnc(YSS,m_par.RB,m_par)
         println("first ProfitSS: ",ProfitsSS)
 
         KSS, BSS, TransitionMatSS,TransitionMatSS_a,TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-                Ksupply(RLSS_fnc(YSS,sum(n_par.dist_guess[:] .* n_par.mesh_m[:]),m_par),1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
+                Ksupply(m_par.RB,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
         println("first BSS: ", BSS)
         println("first BSS/YSS: ",BSS/YSS)
         ## bb.) refinement
@@ -118,8 +118,8 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         rSS                     = interest(KSS,1.0 / m_par.μ, NSS, m_par)
         wSS                     = wage(KSS,1.0 / m_par.μ, NSS , m_par)
         YSS                     = output(KSS,1.0,NSS, m_par)
-        ProfitsSS               = profitsSS_fnc(YSS,m_par)
-        RLSS                    = RLSS_fnc(YSS,BSS,m_par)
+        ProfitsSS               = profitsSS_fnc(YSS,m_par.RB,m_par)
+        RLSS                    = m_par.RB
         println("2nd ProfitSS: ",ProfitsSS)
         KSS, BSS, TransitionMatSS, TransitionMatSS_a, TransitionMatSS_n, distrSS,
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
@@ -136,8 +136,8 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         println("av_tax_rateSS: ",av_tax_rateSS)
         TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))
         println("TSS: ",TSS)
-        println("qΠSS: ",qΠSS_fnc(YSS,m_par))
-        BgovSS        = BSS .- qΠSS_fnc(YSS,m_par)
+        println("qΠSS: ",qΠSS_fnc(YSS,m_par.RB,m_par))
+        BgovSS        = BSS .- qΠSS_fnc(YSS,m_par.RB,m_par)
         println("BgovSS: ", BgovSS)
         GSS           = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
 
