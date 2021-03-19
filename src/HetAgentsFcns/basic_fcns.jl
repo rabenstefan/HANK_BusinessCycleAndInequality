@@ -11,12 +11,10 @@ interest(K::Number, A::Number,N::Number, m_par) = A.* m_par.α .* (K./N) .^(m_pa
 wage(K::Number, A::Number,N::Number, m_par)     = A.* (1-m_par.α) .* (K./N) .^m_par.α # A=TFP * MC
 output(K::Number, A::Number,N::Number, m_par)  = A.* K .^(m_par.α).*N .^(1-m_par.α)
 employment(K::Number, A::Number, m_par)     = (A.* (1.0-m_par.α) .* (m_par.τ_lev .* (1.0 - m_par.τ_prog)).^(1.0 /(1.0 - m_par.τ_prog)) .* K .^(m_par.α )).^((1.0 - m_par.τ_prog)./(m_par.γ+m_par.τ_prog+(m_par.α).*(1 - m_par.τ_prog))) # A=TFP*MC
-# steady state payout to entrepreneurs
-profitsSS_fnc(Y::Number,RB, m_par) = (1.0 .- 1.0 ./ m_par.μ) .* Y .* 
-((RB ./m_par.π .- 1.0) .* (1.0 .- m_par.ωΠ) .+ m_par.ιΠ) ./
-(RB ./m_par.π .- 1.0 .+ m_par.ιΠ)
 # price of tradable stock in steady state
 qΠSS_fnc(Y::Number,RB,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(RB ./m_par.π .- 1 .+ m_par.ιΠ) 
+# steady state payout to entrepreneurs
+profitsSS_fnc(Y::Number,RB, m_par) = (1.0 - m_par.ωΠ).*(1.0 .- 1.0 ./ m_par.μ) .* Y .+ m_par.ιΠ .* qΠSS_fnc(Y,RB,m_par)
 # Average labor productivity (possibly with entrepreneur)
 H_fnc(grid_y,distr_y,m_par) = dot([grid_y[1:end-1];m_par.y_e],distr_y)
 

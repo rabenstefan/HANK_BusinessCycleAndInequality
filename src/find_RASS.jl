@@ -1,26 +1,3 @@
-
-function VFI(Kgrid,av_tax_rate,m_par;tol = 1.0e-16)
-        # construct (composite) consumption over states (Kgrid)
-        N = [employment(K,1.0 / (m_par.μ * m_par.μw),m_par) for K in Kgrid]
-        w = [wage(Kgrid[i],1.0/m_par.μ,N[i],m_par) for i in 1:length(Kgrid)]
-        Y = [output(Kgrid[i],1.0,N[i],m_par) for i in 1:length(Kgrid)]
-        R = [interest(Kgrid[i],1.0 / m_par.μ, N[i], m_par) + 1.0 for i in 1:length(Kgrid)]
-        Π = [profitsSS_fnc(Y[i],R[i],m_par) for i in 1:length(Kgrid)]
-        y = (1.0 .- av_tax_rate).*(w.*N) * (m_par.γ + m_par.τ_prog)/(m_par.γ + 1.0)
-        x = (y .+ R .* Kgrid .+ (1.0 .- av_tax_rate).*Π) .- Kgrid'
-        u = x.^ (1.0 .- m_par.ξ)
-        # value function iteration
-        V = ones(size(Kgrid))
-        lastV = V.+1
-        while norm(V-lastV,Inf)>tol
-                lastV = V
-                V = maximum(u .+ m_par.β*lastV',dims=2)
-        end
-        # find capital level that maps to itself
-        Kopt = [Kgrid[cartix[2]] for cartix in argmax(u .+ m_par.β*V',dims=2)]
-        return Kgrid[argmin(abs.(Kopt-Kgrid))]
-end
-
 @doc raw"""
     find_RASS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct,flattenable,path)
 
@@ -56,11 +33,11 @@ function find_RASS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct =
         # -------------------------------------------------------------------------------
         ## STEP 1: Find the stationary equilibrium
         # -------------------------------------------------------------------------------
-        # Capital stock guesses
-        Kmax      = 2.0 * ((m_par.δ_0 - 0.0025 + (1.0 - m_par.β) / m_par.β) / m_par.α)^(1.0 / (m_par.α - 1.0))
-        Kmin      = 1.0 * ((m_par.δ_0 - 0.0005 + (1.0 - m_par.β) / m_par.β) / m_par.α)^(0.5 / (m_par.α - 1.0))
-        K         = range(.9*Kmin, stop = 1.2*Kmax, length = 1000)
-        KSS = VFI(collect(K),av_tax_rate,m_par)
+        # find KSS directly by maximizing steady state consumption
+        X(K) = (1.0 - av_tax_rate) * (employment(K,1.0/(m_par.μ*m_par.μw),m_par)*wage(K,1.0/m_par.μ,employment(K,1.0/(m_par.μ*m_par.μw),m_par),m_par)*(m_par.γ + m_par.τ_prog)/(m_par.γ + 1.0) + profitsSS_fnc(output(K,1.0,employment(K,1.0/(m_par.μ*m_par.μw),m_par),m_par),interest(K,1.0/m_par.μ,employment(K,1.0/(m_par.μ*m_par.μw),m_par),m_par)+1.0,m_par)) + interest(K,1.0/m_par.μ,employment(K,1.0/(m_par.μ*m_par.μw),m_par),m_par)*K
+
+        res = optimize(k -> -1.0*X(k),0.1,500)
+        KSS = Optim.minimizer(res)
         # c.) Calculate other equilibrium quantities
         NSS                     = employment(KSS, 1.0 ./ (m_par.μ*m_par.μw), m_par)
         rSS                     = interest(KSS,1.0 / m_par.μ, NSS, m_par)
