@@ -30,11 +30,12 @@ function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,pr
     #----------------------------------------------------------------------------
     # inc[1] = labor income , inc[2] = rental income,
     # inc[3]= liquid assets income, inc[4] = capital liquidation income
+    meshes = (k = repeat(n_par.grid_k,1,n_par.ny), y = repeat(grid_y',n_par.nk,1))
     H       = n_par.H
     Paux    = n_par.Π^1000
     distr_y = Paux[1,:]
 
-    inc = Array{Array{Float64,3}}(undef,4)
+    inc_lab = Array{Float64,2}(undef,n_par.nk,n_par.ny)
     mcw = 1.0 ./ m_par.μw
     entr_laborinc = m_par.y_e .* mcw .* w_guess
 
@@ -46,39 +47,30 @@ function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,pr
     av_tax_rate = dot((incgross - incnet),distr_y)./dot((incgross),distr_y)
 
     GHHFA=((m_par.γ - m_par.τ_prog)/(m_par.γ+1)) # transformation (scaling) for composite good
-    inc[1] = GHHFA.*m_par.τ_lev.*(n_par.mesh_y.*mcw.*w_guess).^(1.0-m_par.τ_prog) .+
+    inc_lab = GHHFA.*m_par.τ_lev.*(meshes.y.*mcw.*w_guess).^(1.0-m_par.τ_prog) .+
              (1.0 .- mcw).*w_guess*n_par.H.*(1.0 .- av_tax_rate)# labor income net of taxes
-    inc[1][:,:,end]= m_par.τ_lev.*((n_par.mesh_y[:,:,end]*profit_guess).^(1.0-m_par.τ_prog) .+ GHHFA .* (entr_laborinc).^(1.0 .- m_par.τ_prog)) # profit income net of taxes
-    # rental income
-    inc[2] = (R_guess-1.0).* n_par.mesh_k
-    # liquid asset Income
-    eff_int = (RL_guess .+ m_par.Rbar.*(n_par.mesh_m.<=0.0))./m_par.π # effective rate
-    inc[3] = eff_int .*n_par.mesh_m
-    # capital liquidation Income (q=1 in steady state)
-    inc[4] = n_par.mesh_k
-    c_guess = inc[1] .+ inc[2] .+ inc[3].*(n_par.mesh_m.>0)
+    inc_lab[:,end]= m_par.τ_lev.*((meshes.y[:,:,end]*profit_guess).^(1.0-m_par.τ_prog) .+ GHHFA .* (entr_laborinc).^(1.0 .- m_par.τ_prog)) # profit income net of taxes
+
+    q       = 1.0 # price of Capital
+    π       = m_par.π # inflation (gross)
+    λ       = m_par.λ
+    c_guess = inc_lab .+ meshes.k*(R_guess - 1 + q +RL_guess/π)
     if any(any(c_guess.<0))
         @warn "negative consumption guess"
     end
-    EVm     = eff_int.*mutil(c_guess,m_par.ξ)
-    EVk     = zeros(size(EVm))#+m_par.λ.*invmutil(c_guess)
+    EVk     = mutil(c_guess,m_par.ξ)#+m_par.λ.*invmutil(c_guess)
     dist    = 9999.0
     dist1=dist
     dist2=dist
-    q       = 1.0 # price of Capital
-    π       = 1.0 # inflation (gross)
-    λ       = m_par.λ
+    
     #----------------------------------------------------------------------------
     # Iterate over consumption policies
     #----------------------------------------------------------------------------
     count = 0
     n        = size(c_guess)
-    m_n_star = zeros(n)
-    m_a_star = zeros(n)
-    k_a_star = zeros(n)
-    c_a_star = zeros(n)
-    c_n_star = zeros(n)
-    N = n[1]*n[2]*n[3]
+    c_star = zeros(n)
+    k_star = zeros(n)
+    N = n[1]*n[2]
     on_grid = ((zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)))
     Vm      = eff_int.*mutil(c_guess,m_par.ξ)
     Vk      = (R_guess-1.0 + m_par.λ).*mutil(c_guess,m_par.ξ)
@@ -93,7 +85,7 @@ function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,pr
         (n[1],n[2], n[3]))
 
         # Policy update step
-        c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, on_grid = EGM_OneAssetpolicyupdate(EVk,1.0,m_par.π,RL_guess,1.0,inc,n_par,m_par, false)
+        c_star, k_star = EGM_OneAssetpolicyupdate(EVk,1.0,m_par.π,RL_guess,1.0,inc,n_par,m_par, false)
 
         # marginal value update step
         Vk_new, Vm_new = updateV(EVk,c_a_star, c_n_star, m_n_star, R_guess-1.0, 1.0, m_par, n_par, n_par.Π)
