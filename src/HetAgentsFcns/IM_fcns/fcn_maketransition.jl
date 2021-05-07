@@ -1,3 +1,51 @@
+function MakeTransition(k_pol::AbstractArray,
+    Π::AbstractArray,
+    n_par::NumericalParameters)
+    idk = zeros(Int64, size(k_pol))
+    weightright = zeros(typeof(k_pol[1]), size(k_pol))
+    weightleft  = zeros(typeof(k_pol[1]), size(k_pol))
+    dk = diff(n_par.grid_k)
+    for i in eachindex(k_pol)
+        if k_pol[i] .<= n_par.grid_k[1]
+            idk[i] = 1
+        elseif k_pol[i] .>= n_par.grid_k[end]
+            idk[i] = n_par.nk .- 1
+        else
+            idk[i] = locate(k_pol[i], n_par.grid_k)
+        end
+        weightright[i] = (k_pol[i] - n_par.grid_k[idk[i]]) / dk[idk[i]]
+        if weightright[i] >= 1.0
+            weightright[i] = 1.0 - 1.0e-14
+        elseif weightright[i] <= 0.0
+            weightright[i] = 1.0e-14
+        end
+        weightleft[i] = 1.0 - weightright[i]
+    end
+
+    weight1=zeros(typeof(k_pol[1]),n_par.nk* n_par.ny, n_par.ny)
+    weight2=zeros(typeof(k_pol[1]),n_par.nk* n_par.ny, n_par.ny)
+    targetindex=zeros(Int,n_par.nk* n_par.ny, n_par.ny)
+    runindex=0
+    blockindex=(0:n_par.ny-1)*n_par.nk
+    for zz = 1:n_par.ny # all current income states
+        for kk = 1:n_par.nk # all current asset states
+            runindex=runindex+1
+            for jj = 1:n_par.ny
+                weight1[runindex,jj] = weightleft[kk,zz] .* Π[zz,jj]
+                weight2[runindex,jj] = weightright[kk,zz].* Π[zz,jj]
+                targetindex[runindex,jj] = idk[kk,zz] .+blockindex[jj]
+            end
+        end
+    end
+    #    targetindex = repmat(idk[:],1,n_par.ny) .+ repmat(blockindex', n_par.ny*n_par.nk,1)
+    startindex = repeat(1:n_par.nk * n_par.ny, 1, n_par.ny) 
+    S = vcat(startindex[:], startindex[:])
+    T = vcat(targetindex[:], targetindex[:].+1)
+    W = vcat(weight1[:], weight2[:])
+
+    return S, T, W
+end
+
 function MakeTransition(m_a_star::Array{Float64,3},
     m_n_star::Array{Float64,3},
     k_a_star::Array{Float64,3},

@@ -24,13 +24,13 @@ Idiosyncratic state is tuple ``(m,k,y)``, where
     without [`n`] adjustment of illiquid asset
 - `V_m`,`V_k`: marginal value functions
 """
-function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,profit_guess::Float64, n_par::NumericalParameters, m_par)
+function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,profit_guess::Float64,BtoK, n_par::NumericalParameters, m_par)
     #----------------------------------------------------------------------------
     # Initialize policy function guess
     #----------------------------------------------------------------------------
     # inc[1] = labor income , inc[2] = rental income,
     # inc[3]= liquid assets income, inc[4] = capital liquidation income
-    meshes = (k = repeat(n_par.grid_k,1,n_par.ny), y = repeat(grid_y',n_par.nk,1))
+    meshes = (k = repeat(n_par.grid_k,1,n_par.ny), y = repeat(n_par.grid_y',n_par.nk,1))
     H       = n_par.H
     Paux    = n_par.Π^1000
     distr_y = Paux[1,:]
@@ -49,19 +49,15 @@ function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,pr
     GHHFA=((m_par.γ - m_par.τ_prog)/(m_par.γ+1)) # transformation (scaling) for composite good
     inc_lab = GHHFA.*m_par.τ_lev.*(meshes.y.*mcw.*w_guess).^(1.0-m_par.τ_prog) .+
              (1.0 .- mcw).*w_guess*n_par.H.*(1.0 .- av_tax_rate)# labor income net of taxes
-    inc_lab[:,end]= m_par.τ_lev.*((meshes.y[:,:,end]*profit_guess).^(1.0-m_par.τ_prog) .+ GHHFA .* (entr_laborinc).^(1.0 .- m_par.τ_prog)) # profit income net of taxes
+    inc_lab[:,end]= m_par.τ_lev.*((meshes.y[:,end]*profit_guess).^(1.0-m_par.τ_prog) .+ GHHFA .* (entr_laborinc).^(1.0 .- m_par.τ_prog)) # profit income net of taxes
 
     q       = 1.0 # price of Capital
     π       = m_par.π # inflation (gross)
-    λ       = m_par.λ
-    c_guess = inc_lab .+ meshes.k*(R_guess - 1 + q +RL_guess/π)
+    c_guess = inc_lab .+ meshes.k*(R_guess - 1 + q +BtoK*RL_guess/π)
     if any(any(c_guess.<0))
         @warn "negative consumption guess"
     end
-    EVk     = mutil(c_guess,m_par.ξ)#+m_par.λ.*invmutil(c_guess)
     dist    = 9999.0
-    dist1=dist
-    dist2=dist
     
     #----------------------------------------------------------------------------
     # Iterate over consumption policies
@@ -71,32 +67,21 @@ function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,pr
     c_star = zeros(n)
     k_star = zeros(n)
     N = n[1]*n[2]
-    on_grid = ((zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)),(zeros(Int,1,N),zeros(Float64,1,N)))
-    Vm      = eff_int.*mutil(c_guess,m_par.ξ)
-    Vk      = (R_guess-1.0 + m_par.λ).*mutil(c_guess,m_par.ξ)
+    asset_ret = (R_guess-1.0+BtoK+q)/(q+BtoK)
+    Vk      =  asset_ret.* mutil(c_guess,m_par.ξ)
 
     while dist > n_par.ϵ # Iterate consumption policies until converegence
         count = count + 1
         # Take expectations for labor income change
-        aux     = reshape(Vk,(n[1].*n[2], n[3]))
-        EVk     = reshape(aux*n_par.Π',(n[1],n[2], n[3]))
-        EVm     = reshape(
-        (reshape(eff_int,(n[1].*n[2], n[3])).*reshape(Vm,(n[1].*n[2], n[3])))*n_par.Π',
-        (n[1],n[2], n[3]))
+        EVk = Vk*n_par.Π'
 
         # Policy update step
-        c_star, k_star = EGM_OneAssetpolicyupdate(EVk,1.0,m_par.π,RL_guess,1.0,inc,n_par,m_par, false)
+        c_star, k_star = EGM_OneAssetpolicyupdate(EVk,q,m_par.π,RL_guess,BtoK,BtoK,R_guess - 1.0,inc_lab,n_par,m_par, meshes)
 
-        # marginal value update step
-        Vk_new, Vm_new = updateV(EVk,c_a_star, c_n_star, m_n_star, R_guess-1.0, 1.0, m_par, n_par, n_par.Π)
+        Vk_new = asset_ret .* mutil(c_star,m_par.ξ)
 
         # Calculate distance in updates
-        dist1  = maximum(abs, invmutil(Vk_new,m_par.ξ) .- invmutil(Vk,m_par.ξ))
-        dist2  = maximum(abs, invmutil(Vm_new,m_par.ξ) .- invmutil(Vm,m_par.ξ))
-        dist   = max(dist1,dist2) # distance of old and new policy
-
-        # update policy guess/marginal values of liquid/illiquid assets
-        Vm    = Vm_new
+        dist  = maximum(abs, invmutil(Vk_new,m_par.ξ) .- invmutil(Vk,m_par.ξ))
         Vk    = Vk_new
     end
 
@@ -107,10 +92,8 @@ function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,pr
 
     # Define transition matrix
     # TransitionMat = build_transition_matrix(on_grid,n_par,m_par)
-    S_a, T_a, W_a, S_n, T_n, W_n = MakeTransition(m_a_star,  m_n_star, k_a_star,n_par.Π, n_par)
-    TransitionMat_a = sparse(S_a,T_a,W_a, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
-    TransitionMat_n = sparse(S_n,T_n,W_n, n_par.nm * n_par.nk * n_par.ny, n_par.nm * n_par.nk * n_par.ny)
-    TransitionMat   = m_par.λ.*TransitionMat_a .+ (1.0 .- m_par.λ).*TransitionMat_n
+    S, T, W = MakeTransition(k_star,n_par.Π, n_par)
+    TransitionMat   = sparse(S,T,W, n_par.nk * n_par.ny, n_par.nk * n_par.ny)
     # if n_par.ny>8
     #     # Direct Transition
     #     distr = n_par.dist_guess #ones(n_par.nm, n_par.nk, n_par.ny)/(n_par.nm*n_par.nk*n_par.ny)
@@ -130,12 +113,11 @@ function OneAssetKsupply(RL_guess::Float64,R_guess::Float64, w_guess::Float64,pr
     #     else
     #         error("complex eigenvector of transition matrix")
     #     end
-    distr = reshape((aux[:])./sum((aux[:])),  (n_par.nm, n_par.nk, n_par.ny))
+    distr = reshape((aux[:])./sum((aux[:])),  (n_par.nk, n_par.ny))
     # end
     #-----------------------------------------------------------------------------
     # Calculate capital stock
     #-----------------------------------------------------------------------------
-    K = sum(distr[:] .* n_par.mesh_k[:])
-    B = sum(distr[:] .* n_par.mesh_m[:])
-    return K, B, TransitionMat, TransitionMat_a, TransitionMat_n, distr, c_a_star, m_a_star, k_a_star, c_n_star, m_n_star, Vm, Vk
+    K = sum(distr' * n_par.grid_k)
+    return K, TransitionMat, distr, c_star, k_star, Vk
 end

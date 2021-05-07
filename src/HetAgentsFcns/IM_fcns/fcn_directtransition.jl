@@ -45,3 +45,26 @@ function DirectTransition(m_a_star::Array,
 end
     return dPrime
 end
+
+function DirectTransition(k_pol::AbstractArray,
+    Π::AbstractArray, n_par::NumericalParameters,
+    distr::AbstractArray)
+    # Preallocate Variables
+    idk, wR = MakeWeightsLight(k_pol,n_par.grid_k)
+    dPrime = zeros(eltype(distr),size(distr))
+    blockindex = (0:n_par.ny-1)*n_par.nk
+    for zz = 1:n_par.ny # all current income states
+        for kk = 1:n_par.nk # all current illiquid asset states
+            IDD = idk[kk,zz]
+            dd  = distr[kk,zz]
+            DL  = dd.*(1.0 .- wR[kk,zz])
+            DR  = dd.* wR[kk,zz]
+            for yy = 1:n_par.ny
+                id = IDD +blockindex[yy]
+                dPrime[id]   += Π[zz,yy].*DL
+                dPrime[id+1] += Π[zz,yy].*DR
+            end
+        end
+    end
+    return dPrime
+end

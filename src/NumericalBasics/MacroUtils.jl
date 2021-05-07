@@ -74,6 +74,46 @@ macro writeXSS(state_names,control_names)
     return esc(ex)
 end
 
+macro writeOneAssetXSS(state_names,control_names)
+    ex = quote
+            XSS =   [ distr_k_SS[:]; distr_y_SS[:]]
+    end
+    state_names = Base.eval(Main,state_names)
+    for j in state_names
+            varnameSS = Symbol(j,"SS")
+            ex_aux = quote
+                append!(XSS,log($varnameSS))
+            end
+            append!(ex.args, ex_aux.args)
+    end
+
+    ex_aux= quote
+            append!(XSS,VkSS[:]) # value function controls
+    end
+    append!(ex.args, ex_aux.args)
+    control_names = Base.eval(Main,control_names)
+    for j in control_names
+        varnameSS = Symbol(j,"SS")
+        ex_aux = quote
+            append!(XSS,log($varnameSS))
+        end
+        append!(ex.args, ex_aux.args)
+    end
+    ex_aux= quote XSSaggr=[0.0] end
+    append!(ex.args, ex_aux.args)
+    for j in [state_names;control_names]
+            varnameSS = Symbol(j,"SS")
+            ex_aux = quote
+                append!(XSSaggr,log($varnameSS))
+            end
+            append!(ex.args, ex_aux.args)
+    end
+    ex_aux= quote deleteat!(XSSaggr,1) end
+    append!(ex.args, ex_aux.args)
+
+return esc(ex)
+end
+
 macro writeXSSaggr(state_names,control_names)
     ex = quote XSSaggr=[0.0] end
     state_names = Base.eval(Main,state_names)

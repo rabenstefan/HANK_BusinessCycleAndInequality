@@ -28,7 +28,8 @@ export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, 
         Tauchen, EGM_policyupdate, Kdiff, distrSummaries, @generate_equations,
         @make_deriv, @make_deriv_estim, prioreval, load_n_par, update_XSS, @include,
         employment, output, wage, MakeTransition, build_transition_matrix, mutil, find_RASS, 
-        RASteadyResults, update_XSSaggr, load_RAsteadystate, linearize_RAmodel
+        RASteadyResults, OneAssetSteadyResults, load_RAsteadystate, linearize_RAmodel,
+        compute_OneAssetSS, @make_OneAssetstruct, @make_OneAssetfn, load_OneAssetsteadystate
 
 distr_names=["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share",
 "I90sharenet", "P9010I", "w90share", "P10C", "P50C", "P90C"]
@@ -45,6 +46,7 @@ include("Estimation/prior.jl")
 
 e_set = EstimationSettings()
 @make_struct IndexStruct state_names control_names
+@make_OneAssetstruct OneAssetIndexStruct state_names control_names
 @make_struct_aggr IndexStructAggr aggr_names
 
 include("NumericalBasics.jl")
@@ -54,6 +56,7 @@ include("LinearizationFunctions.jl")
 include("Estimation.jl")
 
 @make_fn produce_indexes state_names control_names
+@make_OneAssetfn produce_OneAssetindexes state_names control_names
 @make_fnaggr produce_indexes_aggr aggr_names
 
 struct SteadyResults
@@ -67,6 +70,21 @@ struct SteadyResults
   m_par
   CDF_SS
   CDF_m
+  CDF_k
+  CDF_y
+  distrSS
+end
+
+struct OneAssetSteadyResults
+  XSS
+  XSSaggr
+  indexes
+  indexes_aggr
+  compressionIndexes
+  Copula
+  n_par
+  m_par
+  CDF_SS
   CDF_k
   CDF_y
   distrSS
@@ -142,6 +160,28 @@ function save_steadystate(RAsr::RASteadyResults;file="Saves")
   end
 end
 
+function save_steadystate(sr::OneAssetSteadyResults;file="Saves")
+  save(string(file,"/OneAssetsteadystate.jld2"),Dict(
+                                "XSS" => sr.XSS,
+                                "XSSaggr" => sr.XSSaggr,
+                                "compressionIndexes" => sr.compressionIndexes,
+                                "CDF_SS" => sr.CDF_SS,
+                                "CDF_k" => sr.CDF_k,
+                                "CDF_y" => sr.CDF_y,
+                                "distrSS" => sr.distrSS
+    ))
+  structs = [:m_par,:n_par]
+  for istr = 1:2
+    filestr = string(file,"/OneAsset", String(structs[istr]),".json")
+    if isfile(filestr)
+      rm(filestr)
+    end
+    open(filestr,"w") do f
+      JSON.print(f,getfield(sr,structs[istr]),4)
+    end
+  end
+end
+
 @doc raw"""
     load_steadystate()
 
@@ -169,6 +209,24 @@ function load_steadystate(;file="Saves",ModelParamStruct = ModelParameters)
   CDF_SS, CDF_m, CDF_k, CDF_y, distrSS)
 end
 
+function load_OneAssetsteadystate(;file="Saves",ModelParamStruct = ModelParameters)
+  dictmpar = JSON.parsefile(string(file,"/OneAssetm_par.json"))
+  mpairs = Array{Pair{Symbol,Any},1}()
+  for (k,v) in dictmpar
+    push!(mpairs,Pair{Symbol,Any}(Symbol(k),v))
+  end
+  m_par = ModelParamStruct(;mpairs...)
+  n_par = load_n_par(string(file,"/OneAssetn_par.json"))
+  @load string(file,"/OneAssetsteadystate.jld2") XSS compressionIndexes CDF_SS CDF_k CDF_y distrSS
+  # produce indexes to access XSS etc.
+  indexes = produce_OneAssetindexes(n_par, compressionIndexes)
+  indexes_aggr = produce_indexes_aggr(n_par)
+  XSSnew, XSSaggr_new = reorder_XSS(XSS,n_par.aggr_names,n_par.naggrstates,indexes,indexes_aggr)
+  Copula(x::Vector,y::Vector) = mylinearinterpolate2(CDF_k, CDF_y, CDF_SS, x, y)
+  return OneAssetSteadyResults(XSSnew, XSSaggr_new, indexes, indexes_aggr, compressionIndexes, Copula, n_par, m_par,
+  CDF_SS, CDF_k, CDF_y, distrSS)
+end
+
 function load_RAsteadystate(;file="Saves",ModelParamStruct = ModelParameters)
   dictmpar = JSON.parsefile(string(file,"/RAm_par.json"))
   mpairs = Array{Pair{Symbol,Any},1}()
@@ -180,7 +238,7 @@ function load_RAsteadystate(;file="Saves",ModelParamStruct = ModelParameters)
   @load string(file,"/RAsteadystate.jld2") XSSaggr
   # produce indexes to access XSS etc.
   indexes_aggr = produce_indexes_aggr(n_par)
-  XSSaggr_new = reorder_XSSaggr(XSSaggr,n_par.aggr_names,indexes_aggr)
+  XSSaggr_new = reorder_XSS(XSSaggr,n_par.aggr_names,indexes_aggr)
   return RASteadyResults(XSSaggr_new, indexes_aggr, n_par, m_par)
 end
 
@@ -226,7 +284,7 @@ are ordered as in `aggr_names`, and return
 vector of steady state values that conforms to ordering in
 `indexesNew`.
 """
-function reorder_XSS(oldXSS,aggr_names,n_states,indexesNew,indexes_aggrNew)
+function reorder_XSS(oldXSS,aggr_names,n_states,indexesNew::IndexStruct,indexes_aggrNew)
   n_controls = max(size(aggr_names)...) - n_states
   state_names = aggr_names[1:n_states]
   control_names = aggr_names[n_states+1:end]
@@ -252,7 +310,33 @@ function reorder_XSS(oldXSS,aggr_names,n_states,indexesNew,indexes_aggrNew)
   return XSS, XSSaggr
 end
 
-function reorder_XSSaggr(oldXSSaggr,aggr_names,indexes_aggrNew)
+function reorder_XSS(oldXSS,aggr_names,n_states,indexesNew::OneAssetIndexStruct,indexes_aggrNew)
+  n_controls = max(size(aggr_names)...) - n_states
+  state_names = aggr_names[1:n_states]
+  control_names = aggr_names[n_states+1:end]
+  ix_dist_end = indexesNew.distr_y_SS[end]
+  ix_V_end = indexesNew.VkSS[end]
+
+  XSS = zeros(ix_V_end + n_controls)
+  XSSaggr = zeros(n_states + n_controls)
+  XSS[1:ix_dist_end] = oldXSS[1:ix_dist_end]
+
+  for (i,s) in enumerate(state_names)
+    XSS[getfield(indexesNew,Symbol(s,"SS"))] = oldXSS[ix_dist_end+i]
+    XSSaggr[getfield(indexes_aggrNew,Symbol(s,"SS"))] = oldXSS[ix_dist_end+i]
+  end
+
+  XSS[indexesNew.VkSS] = oldXSS[indexesNew.VkSS]
+  
+  for (i,c) in enumerate(control_names)
+    XSS[getfield(indexesNew,Symbol(c,"SS"))] = oldXSS[ix_V_end+i]
+    XSSaggr[getfield(indexes_aggrNew,Symbol(c,"SS"))] = oldXSS[ix_V_end+i]
+  end
+
+  return XSS, XSSaggr
+end
+
+function reorder_XSS(oldXSSaggr,aggr_names,indexes_aggrNew)
   XSSaggr = zeros(length(aggr_names))
   for (i,s) in enumerate(aggr_names)
     XSSaggr[getfield(indexes_aggrNew,Symbol(s,"SS"))] = oldXSSaggr[i]
@@ -336,6 +420,10 @@ function compute_steadystate(state_names,control_names;ModelParamStruct=ModelPar
   CDF_SS, CDF_m, CDF_k, CDF_y, distrSS)
 end
 
+function compute_OneAssetSS(state_names,control_names,BtoK;ModelParamStruct=ModelParameters,flattenable=flattenable,path=pwd())
+  return OneAssetSteadyResults(find_OneAssetSS(state_names,control_names,BtoK;ModelParamStruct = ModelParamStruct,flattenable = flattenable, path=path)...)
+end
+
 @doc raw"""
     linearize_full_model()
 
@@ -349,9 +437,10 @@ using [`SGU()`](@ref).
 - `State2Control::Array{Float64,2}`: observation equation
 - `LOMstate::Array{Float64,2}`: state transition equation
 """
-function linearize_full_model(sr::SteadyResults;Fsys_agg::Function = Fsys_agg,balanced_budget=false)
+function linearize_full_model(sr::Union{SteadyResults,OneAssetSteadyResults};Fsys_agg::Function = Fsys_agg,balanced_budget=false)
     A=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
     B=zeros(sr.n_par.ntotal,sr.n_par.ntotal)
+    # DuckTyping: SGU for One Asset is chosen if compressionIndexes not nested array
     State2Control, LOMstate, SolutionError, nk, A, B = SGU(sr.XSS, copy(A), copy(B), sr.m_par, sr.n_par, sr.indexes, sr.Copula, sr.compressionIndexes, sr.distrSS; estim = false, Fsys_agg = Fsys_agg,balanced_budget=balanced_budget)
     return LinearResults(State2Control, LOMstate, A, B, SolutionError)
 end

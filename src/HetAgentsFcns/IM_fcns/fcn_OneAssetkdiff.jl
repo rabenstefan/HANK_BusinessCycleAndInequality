@@ -12,13 +12,13 @@ Requires global functions `employment(K,A,m_par)`, `interest(K,A,N,m_par)`,
 - `K_guess::Float64`: capital stock guess
 - `n_par::NumericalParameters`, `m_par::ModelParameters`
 """
-function Kdiff(K_guess::Float64, n_par::NumericalParameters, m_par)
+function OneAssetKdiff(K_guess::Float64,BtoK, n_par::NumericalParameters, m_par)
     N       = employment(K_guess, 1.0 ./(m_par.μ*m_par.μw), m_par)
     r       = interest(K_guess,1.0 ./m_par.μ,N, m_par)
     w       = wage(K_guess,1 ./m_par.μ,N, m_par)
     Y = output(K_guess,1.0,N,m_par)
     profits = profitsSS_fnc(Y,m_par.RB,m_par)
-    K::Float64   = Ksupply(m_par.RB,1.0+r,w*N/n_par.H,profits,n_par,m_par)[1]
+    K::Float64   = OneAssetKsupply(m_par.RB,1.0+r,w*N/n_par.H,profits,BtoK,n_par,m_par)[1]
     diff    = K - K_guess
     return diff
 end

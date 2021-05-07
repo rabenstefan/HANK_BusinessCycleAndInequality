@@ -29,18 +29,15 @@ given by `global` `n_FD`. Make use of model knowledge to set some entries manual
     `XPrime` [`A`]
 """
 function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
-    indexes, Copula::Function, compressionIndexes::Array{Array{Int,1},1}, distrSS::Array{Float64,3}; estim=false,Fsys_agg::Function = Fsys_agg,balanced_budget=false)
+    indexes, Copula::Function, compressionIndexes::Array{Int,1}, distrSS::Array{Float64,2}; estim=false,Fsys_agg::Function = Fsys_agg,balanced_budget=false)
     ############################################################################
     # Prepare elements used for uncompression
     ############################################################################
     # Matrices to take care of reduced degree of freedom in marginal distributions
     Γ  = shuffleMatrix(distrSS, n_par)
     # Matrices for discrete cosine transforms
-    DC = Array{Array{Float64,2},1}(undef,3)
-    DC[1]  = mydctmx(n_par.nm)
-    DC[2]  = mydctmx(n_par.nk)
-    DC[3]  = mydctmx(n_par.ny)
-    IDC    = [DC[1]', DC[2]', DC[3]']
+    DC1  = mydctmx(n_par.nk)
+    DC2  = mydctmx(n_par.ny)
 
     ############################################################################
     # Check whether Steady state solves the difference equation
@@ -54,14 +51,15 @@ function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
     F4  = zeros(length_X0,n_par.ncontrols)
     F2 = zeros(length_X0,n_par.ncontrols)
     # Set indexes where whole column of jacobian is constant
-    @set! n_par.indexes_const = [indexes.Vm;indexes.Vk]
+    @set! n_par.indexes_const = [indexes.Vk]
     @set! n_par.nstates_red = n_par.nstates
     @set! n_par.ncontrols_red = n_par.naggrcontrols
-    @set! n_par.indexes_constP = [indexes.distr_m;indexes.distr_k;indexes.distr_y]
+    @set! n_par.indexes_constP = [indexes.distr_k;indexes.distr_y]
     @set! n_par.nstates_redP = n_par.naggrstates
     @set! n_par.ncontrols_redP = n_par.ncontrols
     # Differentiate
-    F(x,xp) = Fsys_wrap(x,xp,XSS,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg,balanced_budget=balanced_budget)
+    # Due to DuckTyping, Fsys_wrap calls Fsys for one asset (b/c compressionIndexes is not nested array)
+    F(x,xp) = Fsys_wrap(x,xp,XSS,m_par,n_par,indexes,Γ,compressionIndexes,DC1,DC2,Copula;Fsys_agg=Fsys_agg,balanced_budget=balanced_budget)
     #BLAS.set_num_threads(1)
     builtin_FO_SO!(F3,F1,F4,F2,H,F,n_par;chunksize=19);
     # Trim FO derivatives by deleting row/column of permutation parameter
@@ -83,8 +81,6 @@ function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
     # the system, thus derivative is 1
     B[[LinearIndices(B)[i,i] for i in n_par.indexes_const]] .= 1.0
 
-    A[vcat([LinearIndices(A)[indexes.distr_m,i] for i in indexes.distr_m]...)] = reshape(-Γ[1][1:end-1,:],(:,1))
-
     A[vcat([LinearIndices(A)[indexes.distr_k,i] for i in indexes.distr_k]...)] = reshape(-Γ[2][1:end-1,:],(:,1))
     
     A[vcat([LinearIndices(A)[indexes.distr_y,i] for i in indexes.distr_y]...)] = reshape(-Γ[3][1:end-1,:],(:,1))
@@ -96,46 +92,4 @@ function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
     # BLAS.set_num_threads(1)
     gx, hx, alarm_sgu, nk = SolveDiffEq(A,B, n_par)
     return gx, hx, alarm_sgu, nk, A, B
-end
-
-function Fsys_wrap(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_par,
-    n_par::NumericalParameters, indexes, Γ, compressionIndexes::AbstractArray,
-    DC,IDC,Copula::Function;Fsys_agg::Function=Fsys_agg,balanced_budget=false)
-    # Assume that permutation parameter is positioned at end of states,
-    # leave variables with constant derivatives as zeros.
-    ix_all = [i for i=1:n_par.ntotal]
-    X_old = zeros(eltype(X),n_par.ntotal)
-    X_old[setdiff(ix_all,n_par.indexes_const)] = [X[1:n_par.nstates_red];X[n_par.nstates_red+2:end]]
-    σ = X[n_par.nstates_red+1]
-    XPr_old = zeros(eltype(XPrime),n_par.ntotal)
-    XPr_old[setdiff(ix_all,n_par.indexes_constP)] = [XPrime[1:n_par.nstates_redP];XPrime[n_par.nstates_redP+2:end]]
-    σPr = XPrime[n_par.nstates_redP+1]
-    F = Fsys(X_old,XPr_old,Xss,m_par,n_par,indexes,Γ,compressionIndexes,DC,IDC,Copula;Fsys_agg=Fsys_agg,balanced_budget=balanced_budget)
-    return [F;σPr-σ]
-end
-
-function builtin_FO_SO!(Fx, FxP, Fy, FyP, H, F, n_par; chunksize = 5)
-    ntot = n_par.ntotal + 1
-    ntot_red    = n_par.nstates_red + 1 + n_par.ncontrols_red
-    ntot_redP   = n_par.nstates_redP + 1 + n_par.ncontrols_redP
-    x0      = zeros(ntot_red + ntot_redP)
-    
-    # Indices for map from sorting of Levintal (2017)
-    xi  = n_par.ncontrols_redP + n_par.ncontrols_red + n_par.nstates_redP + 2 : ntot_red + ntot_redP
-    yi  = n_par.ncontrols_redP + 1 : n_par.ncontrols_redP + n_par.ncontrols_red
-    xPi = n_par.ncontrols_redP + n_par.ncontrols_red + 1 : n_par.ncontrols_redP + n_par.ncontrols_red + n_par.nstates_redP + 1
-    yPi = 1 : n_par.ncontrols_redP
-
-    aux(x)      = F([x[xi];x[yi]],[x[xPi];x[yPi]])
-    # Select chunk size
-    cfg_so      = ForwardDiff.JacobianConfig(nothing,x0,ForwardDiff.Chunk{chunksize}())
-    diffres     = ForwardDiff.jacobian(x -> aux(x),x0,cfg_so)#[aux(x);vec(ForwardDiff.jacobian(aux,x))],x0,cfg_so)
-    #H[:,:]      = reshape(diffres[ntot+1:end,:],ntot,Hcoln)
-    ix_sts = [i for i=1:n_par.nstates]
-    ix_cntr = [i for i=1:n_par.ncontrols]
-
-    Fx[:,[setdiff(ix_sts,n_par.indexes_const);n_par.nstates+1]]     = diffres[1:ntot,xi']
-    FxP[:,[setdiff(ix_sts,n_par.indexes_constP);n_par.nstates+1]]    = diffres[1:ntot,xPi']
-    Fy[:,setdiff(ix_cntr,n_par.indexes_const .- n_par.nstates)]     = diffres[1:ntot,yi']
-    FyP[:,setdiff(ix_cntr,n_par.indexes_constP .- n_par.nstates)]    = diffres[1:ntot,yPi']
 end

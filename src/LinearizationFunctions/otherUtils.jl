@@ -110,6 +110,40 @@ macro make_fn(fn_name,  s_names, c_names)
 	end)
 end
 
+macro OneAssetmake_fn(fn_name,  s_names, c_names)
+    # fields=[:($(entry.args[1])::$(entry.args[2])) for entry in var_names]
+	# fieldsSS=[:($(Symbol((entry.args[1]), "SS"))::$(entry.args[2])) for entry in var_names]
+	state_names=Symbol.(Base.eval(Main,(s_names)))
+	n_states = length(state_names)
+	control_names=Symbol.(Base.eval(Main,(c_names)))
+	n_controls = length(control_names)
+	
+	fieldsSS_states = [:(tNo + $i) for i = 1:n_states]
+	fields_states = [:(tNo - 2 -0 + $i) for i = 1:n_states]
+	fieldsSS_controls = [:(tNo + tNo2 + $i) for i = n_states .+ (1:n_controls)]
+	fields_controls = [:(tNo + tNo3 - 2 -0 + $i) for i = n_states .+ (1:n_controls)]
+	esc(quote
+		function $(fn_name)(n_par, compressionIndexes)
+		    tNo =  n_par.nk + n_par.ny
+		    tNo2 =  n_par.nk * n_par.ny
+		    tNo3 = length(compressionIndexes)
+		    indexes = OneAssetIndexStruct(
+		        1:n_par.nk, # distr_k_SS
+		        (n_par.nk+1):(tNo), # distr_y_SS
+				$(fieldsSS_states...),
+				(tNo + $(n_states) + 1):(tNo + tNo2 + $(n_states)), # VmSS
+				$(fieldsSS_controls...),
+				1:(n_par.nk - 1 - 0), # distr_k
+		        (n_par.nk - 0):(tNo- 2 - 0), # distr_y
+				$(fields_states...),
+				(tNo + $(n_states) - 1 - 0):(tNo + tNo3 + $(n_states) - 2 - 0), # Vm
+				$(fields_controls...)
+				)
+			return indexes
+		end
+	end)
+end
+
 @doc raw"""
 	@make_deriv(n_FD_s)
 

@@ -22,7 +22,7 @@ function produceCompMat(DC,compressionIndexes,dims)
     return CompMat, UnCompMat
 end
 
-function uncompress(compressionIndexes, XC, DC,IDC, n_par)
+function uncompress(compressionIndexes, XC, DC::Array{Array{Float64,2},1},IDC::Array{Adjoint{Float64,Array{Float64,2}},1}, n_par)
     # POTENTIAL FOR SPEEDUP BY SPLITTING INTO DUAL AND REAL PART AND USE BLAS
     θ1 =zeros(eltype(XC),n_par.nm,n_par.nk,n_par.ny)
     for j  =1:length(XC)
@@ -38,8 +38,20 @@ function uncompress(compressionIndexes, XC, DC,IDC, n_par)
     return θ
 end
 
+function uncompress(compressionIndexes, XC, DC1,DC2, n_par)
+    # POTENTIAL FOR SPEEDUP BY SPLITTING INTO DUAL AND REAL PART AND USE BLAS
+    θ1 =zeros(eltype(XC),n_par.nk,n_par.ny)
+    #n1, n2 = ind2sub((n_par.nk,n_par.ny), compressionIndexes)
+    for j  =1:length(XC)
+        θ1[compressionIndexes[j]] = copy(XC[j])
+    end
+    θ1 = DC1'*θ1*DC2
+    θ = reshape(θ1,n_par.nk*n_par.ny)
+    return θ
+end
+
 function compress(compressionIndexes::AbstractArray, XU::AbstractArray,
-    DC::AbstractArray,IDC::AbstractArray, n_par)
+    DC::Array{Array{Float64,2},1},IDC::Array{Adjoint{Float64,Array{Float64,2}},1}, n_par)
     θ   = zeros(eltype(XU),length(compressionIndexes))
     XU2 = zeros(eltype(XU),size(XU))
     # preallocate mm and kk (subs from comressionIndexes)
@@ -73,6 +85,17 @@ function compress(compressionIndexes::AbstractArray, XU::AbstractArray,
         for j  =1:length(compressionIndexes)
             θ[j] = XU2[compressionIndexes[j]]
         end
+    end
+    return θ
+end
+
+function compress(compressionIndexes, XU, DC1,DC2)
+    # POTENTIAL FOR SPEEDUP BY SPLITTING INTO DUAL AND REAL PART AND USE BLAS
+    θ   = zeros(typeof(XU[1]),length(compressionIndexes))
+    #XU2 = copy(XU)
+    XU2 = DC1*XU*DC2'
+    for j  =1:length(compressionIndexes)
+        θ[j] = XU2[compressionIndexes[j]]
     end
     return θ
 end

@@ -270,3 +270,33 @@ macro make_struct(struct_name, s_names, c_names)
 	end
 	end)
 end
+
+macro OneAssetmake_struct(struct_name, s_names, c_names)
+    # fields=[:($(entry.args[1])::$(entry.args[2])) for entry in var_names]
+    # fieldsSS=[:($(Symbol((entry.args[1]), "SS"))::$(entry.args[2])) for entry in var_names]
+    state_names=Symbol.(Base.eval(Main,(s_names)))
+    n_states = length(state_names)
+    control_names=Symbol.(Base.eval(Main,(c_names)))
+    n_controls = length(control_names)
+
+    fields_states 	  = [:($(state_names[i])::Int) for i = 1:n_states]
+    fieldsSS_states   = [:($(Symbol(state_names[i], "SS")) ::Int) for i = 1:n_states]
+    fields_controls   =[:($(control_names[i])::Int) for i = 1:n_controls]
+    fieldsSS_controls =[:($(Symbol(control_names[i], "SS")) ::Int) for i =1:n_controls]
+
+    # fields=[:($(Symbol(i, "::Int"))) for i in var_names]
+    # fieldsSS=[:($(Symbol(i, "SS::Int"))) for i in var_names]
+    esc(quote struct $struct_name
+		distr_k_SS	::Array{Int,1}
+		distr_y_SS	::Array{Int,1}
+		$(fieldsSS_states...)
+		VkSS     	::Array{Int,1}
+		$(fieldsSS_controls...)
+		distr_k		::Array{Int,1}
+		distr_y		::Array{Int,1}
+		$(fields_states...)
+		Vk     		::Array{Int,1}
+		$(fields_controls...)
+	end
+	end)
+end

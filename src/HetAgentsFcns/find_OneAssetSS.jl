@@ -1,8 +1,5 @@
-include("IM_fcns/fcn_OneAssetksupply.jl")
-include("EGM/EGM_OneAssetpolicyupdate.jl")
-
 @doc raw"""
-    find_SS(refined_ny)
+    find_OneAssetSS(refined_ny)
 
 Find the stationary equilibrium using a final resolution of `refined_ny` for income.
 
@@ -17,13 +14,13 @@ Find the stationary equilibrium using a final resolution of `refined_ny` for inc
 - `distrSS::Array{Float64,3}`: steady state distribution of idiosyncratic states, computed by [`Ksupply()`](@ref)
 - `CDF_SS`, `CDF_m`, `CDF_k`, `CDF_y`: cumulative distribution functions (joint and marginals)
 """
-function find_SS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct = ModelParameters,flattenable = flattenable, path)
+function find_OneAssetSS(state_names,control_names,BtoK;ModelParamStruct = ModelParameters,flattenable = flattenable, path)
 
         BLAS.set_num_threads(Threads.nthreads())
 
         # global m_par, n_par, CDF_m, CDF_k, CDF_y
         # load estimated parameter set
-        m_par           = ModelParamStruct( )
+        m_par           = ModelParamStruct(λ = 1.0)
         @load string(path,"/",e_set.mode_start_file) par_final parnames
         par = par_final[1:length(parnames)]
         if e_set.me_treatment != :fixed
@@ -54,7 +51,7 @@ function find_SS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct = M
         Kmin      = 1.0 * ((m_par.δ_0 - 0.0005 + (1.0 - m_par.β) / m_par.β) / m_par.α)^(0.5 / (m_par.α - 1.0))
         K         = range(Kmin, stop = Kmax, length = 8)
         # a.) Define excess demand function
-        d(K)      = Kdiff(K,n_par,m_par;ksupply_fnc=OneAssetKsupply)
+        d(K)      = OneAssetKdiff(K,BtoK,n_par,m_par)
 
         # b.) Find equilibrium capital stock (multigrid on y)
         # ba.) initial calculation
@@ -68,20 +65,16 @@ function find_SS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct = M
         ProfitsSS = profitsSS_fnc(YSS,m_par.RB,m_par)
         println("first ProfitSS: ",ProfitsSS)
 
-        KSS, BSS, TransitionMatSS,TransitionMatSS_a,TransitionMatSS_n, distrSS,
-                c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-                Ksupply(m_par.RB,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
-        println("first BSS: ", BSS)
-        println("first BSS/YSS: ",BSS/YSS)
+        KSS, TransitionMatSS, distrSS,
+                c_starSS, k_starSS,VkSS =
+                OneAssetKsupply(m_par.RB,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,BtoK,n_par,m_par)
+        println("first KSS: ", KSS)
+        println("first KSS/YSS: ",KSS/YSS)
         ## bb.) refinement
         ny              = n_par.ny_refined; # eigs in Ksupply quickly increases in runtime in ny
         grid_y, Π, bounds= Tauchen(m_par.ρ_h,ny)
         gy              = [exp.(grid_y .* m_par.σ_h ./ sqrt(1.0 .- m_par.ρ_h.^2)); (m_par.ζ .+
                         m_par.ι)/m_par.ζ]
-        # Interpolate distribution on refined wealth-income grid
-        refined_dist    = mylinearinterpolate3(n_par.grid_m,n_par.grid_k, n_par.grid_y,
-                                                distrSS,n_par.grid_m,n_par.grid_k, gy)
-        refined_dist    = refined_dist ./ sum(refined_dist,dims=(1,2,3))
         # Include entrepreneurs into the income transitions
         Π               = [Π .* (1.0 .- m_par.ζ)  m_par.ζ .* ones(ny);
                         m_par.ι ./ ny * ones(1,ny) 1.0 .- m_par.ι]
@@ -92,7 +85,7 @@ function find_SS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct = M
 
         # Write changed parameter values to n_par
         @set! n_par.ny          = ny + 1
-        @set! n_par.nstates     = (ny + 1) + n_par.nk + n_par.nm + length(state_names) - 3
+        @set! n_par.nstates     = (ny + 1) + n_par.nk + length(state_names) - 2
         @set! n_par.naggrstates = length(state_names)
         @set! n_par.naggrcontrols = length(control_names)
         @set! n_par.aggr_names  = [state_names; control_names]
@@ -101,14 +94,8 @@ function find_SS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct = M
         @set! n_par.bounds_y    = bounds
         @set! n_par.ϵ           = 1e-10
         @set! n_par.grid_y      = grid_y
-        @set! n_par.mesh_y      = repeat(reshape(grid_y, (1, 1, ny + 1)), outer=[n_par.nm, n_par.nk, 1])
-        @set! n_par.mesh_m      = repeat(reshape(n_par.grid_m, (n_par.nm, 1, 1)),
-                                outer=[1, n_par.nk, ny + 1])
-        @set! n_par.mesh_k      = repeat(reshape(n_par.grid_k, (1, n_par.nk, 1)),
-                                        outer=[n_par.nm, 1, ny + 1])
         @set! n_par.Π           = Π
         @set! n_par.H           = H
-        @set! n_par.dist_guess  = refined_dist
 
         KSS                     = Brent(d, KSS*.9, KSS*1.2)[1]
 
@@ -120,43 +107,32 @@ function find_SS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct = M
         ProfitsSS               = profitsSS_fnc(YSS,m_par.RB,m_par)
         RLSS                    = m_par.RB
         println("2nd ProfitSS: ",ProfitsSS)
-        KSS, BSS, TransitionMatSS, TransitionMatSS_a, TransitionMatSS_n, distrSS,
-                c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
-                Ksupply(RLSS,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
-        println("2nd BSS: ",BSS)
-        println("BSS/YSS: ",BSS/YSS)
-        VmSS                    = log.(VmSS)
+        KSS, TransitionMatSS, distrSS,
+                c_starSS, k_starSS, VkSS =
+                OneAssetKsupply(RLSS,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,BtoK,n_par,m_par)
+        println("2nd KSS: ",KSS)
+        println("KSS/YSS: ",KSS/YSS)
         VkSS                    = log.(VkSS)
         RBSS                    = m_par.RB
         ISS                     = m_par.δ_0*KSS
 
         # Produce distributional summary statistics
-        incgross, inc, av_tax_rateSS, taxrev = incomes(n_par,m_par,distrSS,NSS,1 .+ rSS,wSS,ProfitsSS,1.0,RLSS,m_par.π,1.0 ./ m_par.μw,1.0,m_par.τ_prog,m_par.τ_lev,1.0,H)
+        incgross, inc, av_tax_rateSS, taxrev = OneAssetincomes(n_par,m_par,distrSS,NSS,1 .+ rSS,BtoK,wSS,ProfitsSS,1.0,RLSS,m_par.π,1.0 ./ m_par.μw,1.0,m_par.τ_prog,m_par.τ_lev,1.0,H)
         println("av_tax_rateSS: ",av_tax_rateSS)
         TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))
         println("TSS: ",TSS)
+        BSS = BtoK * KSS
+        println("BSS: ",BSS)
         println("qΠSS: ",qΠSS_fnc(YSS,m_par.RB,m_par))
         BgovSS        = BSS .- qΠSS_fnc(YSS,m_par.RB,m_par)
         println("BgovSS: ", BgovSS)
         GSS           = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
-
-        distr_m_SS, distr_k_SS, distr_y_SS, share_borrowerSS, GiniWSS, I90shareSS,I90sharenetSS, GiniXSS,
-                sdlogxSS, P9010CSS, GiniCSS, sdlgCSS, P9010ISS, GiniISS, sdlgISS, w90shareSS, P10CSS, P50CSS, P90CSS =
-                distrSummaries(distrSS, c_a_starSS, c_n_starSS, n_par, inc,incgross, m_par)
+        # This should be improved by writing OneAssetDistribution function
+        @setDistrSSvals
         # ------------------------------------------------------------------------------
         ## STEP 2: Dimensionality reduction
         # ------------------------------------------------------------------------------
         # 2a.) Discrete cosine transformation of policies or MUs
-        aux             = dct(VmSS)
-        ThetaVm   = aux[:] # Discrete Cosine transformation
-        ind             = sortperm(abs.(ThetaVm[:]);rev=true) #Indexes of sorted coefficients
-        coeffs          = 1
-        # Find the important basis functions (discrete cosine) for c_polSS
-        while norm(ThetaVm[ind[1:coeffs]])/norm(ThetaVm ) < 1 - n_par.reduc
-                coeffs += 1
-        end
-        compressionIndexesVm  = ind[1:coeffs]
-
         ThetaVk   = dct(VkSS)[:] # Discrete Cosine transformation
         ind             = sortperm(abs.(ThetaVk[:]);rev=true) #Indexes of sorted coefficients
         coeffs          = 1;
@@ -164,35 +140,32 @@ function find_SS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct = M
         while norm(ThetaVk[ind[1:coeffs]])/norm(ThetaVk ) < 1 - n_par.reduc
                 coeffs += 1
         end
-        compressionIndexesVk  = ind[1:coeffs]
-
-        compressionIndexes =Array{Array{Int,1},1}(undef ,2)
-        compressionIndexes[1] = compressionIndexesVm
-        compressionIndexes[2] = compressionIndexesVk
+        compressionIndexes  = ind[1:coeffs]
         # 2b.) Produce the Copula as an interpolant on the distribution function
         #      and its marginals
-        CDF_SS     = zeros(n_par.nm+1,n_par.nk+1,n_par.ny+1)
-        CDF_SS[2:end,2:end,2:end]     = cumsum(cumsum(cumsum(distrSS,dims=1),dims=2),dims=3)
-        distr_m_SS = sum(distrSS,dims=(2,3))[:]
-        distr_k_SS = sum(distrSS,dims=(1,3))[:]
-        distr_y_SS = sum(distrSS,dims=(1,2))[:]
-        CDF_m      = cumsum([0.0; distr_m_SS[:]])
+        CDF_SS     = zeros(n_par.nk+1,n_par.ny+1)
+        CDF_SS[2:end,2:end]     = cumsum(cumsum(distrSS,dims=1),dims=2)
+        distr_k_SS = sum(distrSS,dims=2)[:]
+        distr_y_SS = sum(distrSS,dims=1)[:]
         CDF_k      = cumsum([0.0; distr_k_SS[:]])
         CDF_y      = cumsum([0.0; distr_y_SS[:]])
 
-        Copula(x::Vector,y::Vector,z::Vector) = mylinearinterpolate3(CDF_m, CDF_k, CDF_y,
-                                                                CDF_SS, x, y, z)
+        Copula(x::Vector,y::Vector) = mylinearinterpolate2(CDF_k, CDF_y,
+                                                                CDF_SS, x, y)
 
         # ------------------------------------------------------------------------------
 
         @include "../input_aggregate_steady_state.jl"
 
         # write to XSS vector
-        @writeXSS state_names control_names
+        @writeOneAssetXSS state_names control_names
         # produce indexes to access XSS etc.
-        indexes = produce_indexes(n_par, compressionIndexesVm, compressionIndexesVk)
+        indexes = produce_OneAssetindexes(n_par, compressionIndexes)
         indexes_aggr = produce_indexes_aggr(n_par)
+        ntotal                  = indexes.profits
+        @set! n_par.ntotal      = ntotal
+        @set! n_par.ncontrols   = length(compressionIndexes) + n_par.naggrcontrols
 
         return XSS, XSSaggr, indexes, indexes_aggr, compressionIndexes, Copula, n_par, #=
-                =# m_par, d, CDF_SS, CDF_m, CDF_k, CDF_y, distrSS
+                =# m_par, CDF_SS, CDF_k, CDF_y, distrSS
 end
