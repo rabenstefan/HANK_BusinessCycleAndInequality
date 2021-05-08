@@ -51,7 +51,7 @@ function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
     F4  = zeros(length_X0,n_par.ncontrols)
     F2 = zeros(length_X0,n_par.ncontrols)
     # Set indexes where whole column of jacobian is constant
-    @set! n_par.indexes_const = [indexes.Vk]
+    @set! n_par.indexes_const = indexes.Vk
     @set! n_par.nstates_red = n_par.nstates
     @set! n_par.ncontrols_red = n_par.naggrcontrols
     @set! n_par.indexes_constP = [indexes.distr_k;indexes.distr_y]
@@ -81,9 +81,9 @@ function SGU(XSS::Array,A::Array,B::Array, m_par, n_par::NumericalParameters,
     # the system, thus derivative is 1
     B[[LinearIndices(B)[i,i] for i in n_par.indexes_const]] .= 1.0
 
-    A[vcat([LinearIndices(A)[indexes.distr_k,i] for i in indexes.distr_k]...)] = reshape(-Γ[2][1:end-1,:],(:,1))
+    A[vcat([LinearIndices(A)[indexes.distr_k,i] for i in indexes.distr_k]...)] = reshape(-Γ[1][1:end-1,:],(:,1))
     
-    A[vcat([LinearIndices(A)[indexes.distr_y,i] for i in indexes.distr_y]...)] = reshape(-Γ[3][1:end-1,:],(:,1))
+    A[vcat([LinearIndices(A)[indexes.distr_y,i] for i in indexes.distr_y]...)] = reshape(-Γ[2][1:end-1,:],(:,1))
 
     ############################################################################
     # Solve the linearized model: Policy Functions and LOMs

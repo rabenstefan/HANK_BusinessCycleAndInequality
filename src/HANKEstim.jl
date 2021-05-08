@@ -29,7 +29,8 @@ export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, 
         @make_deriv, @make_deriv_estim, prioreval, load_n_par, update_XSS, @include,
         employment, output, wage, MakeTransition, build_transition_matrix, mutil, find_RASS, 
         RASteadyResults, OneAssetSteadyResults, load_RAsteadystate, linearize_RAmodel,
-        compute_OneAssetSS, @make_OneAssetstruct, @make_OneAssetfn, load_OneAssetsteadystate
+        compute_OneAssetSS, @make_OneAssetstruct, @make_OneAssetfn, load_OneAssetsteadystate,
+        OneAssetincomes
 
 distr_names=["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share",
 "I90sharenet", "P9010I", "w90share", "P10C", "P50C", "P90C"]
@@ -266,13 +267,13 @@ function load_n_par(file)
   # Infer size of multi-dim. arrays from other parameters.
   @set! n_par.Π = reshape(vcat(dictnpar["Π"]...),(n_par.ny,n_par.ny))
   @set! n_par.mesh_y = reshape(vcat(vcat(dictnpar["mesh_y"]...)...),
-      (n_par.nm,n_par.nk,n_par.ny))
+      (n_par.nm,n_par.nk,:))
   @set! n_par.mesh_k = reshape(vcat(vcat(dictnpar["mesh_k"]...)...),
-      (n_par.nm,n_par.nk,n_par.ny))
+      (n_par.nm,n_par.nk,:))
   @set! n_par.mesh_m = reshape(vcat(vcat(dictnpar["mesh_m"]...)...),
-      (n_par.nm,n_par.nk,n_par.ny))
+      (n_par.nm,n_par.nk,:))
   @set! n_par.dist_guess = reshape(vcat(vcat(dictnpar["dist_guess"]...)...),
-      (n_par.nm,n_par.nk,n_par.ny))
+      (n_par.nm,n_par.nk,:))
   return n_par
 end
 
@@ -344,7 +345,7 @@ function reorder_XSS(oldXSSaggr,aggr_names,indexes_aggrNew)
   return XSSaggr
 end
 
-function update_XSS(oldXSS,indexesOld,newSSvals,state_names,control_names)
+function update_XSS(oldXSS,indexesOld::IndexStruct,newSSvals,state_names,control_names)
   XSS = oldXSS[[indexesOld.distr_m_SS;indexesOld.distr_k_SS;indexesOld.distr_y_SS]]
 
   for j in state_names
@@ -383,7 +384,48 @@ function update_XSS(oldXSS,indexesOld,newSSvals,state_names,control_names)
 
   return XSS, XSSaggr
 end
-function update_XSSaggr(oldXSSaggr,indexes_aggrOld,newSSvals,aggr_names)
+
+function update_XSS(oldXSS,indexesOld::OneAssetIndexStruct,newSSvals,state_names,control_names)
+  XSS = oldXSS[[indexesOld.distr_k_SS;indexesOld.distr_y_SS]]
+
+  for j in state_names
+      varnameSS = Symbol(j,"SS")
+      if in(varnameSS,keys(newSSvals))
+        val = newSSvals[varnameSS]
+      else
+        val = oldXSS[getfield(indexesOld,varnameSS)]
+      end
+      append!(XSS,val)
+  end
+
+  append!(XSS,oldXSS[indexesOld.VkSS])
+
+  for j in control_names
+    varnameSS = Symbol(j,"SS")
+    if in(varnameSS,keys(newSSvals))
+      val = newSSvals[varnameSS]
+    else
+      val = oldXSS[getfield(indexesOld,varnameSS)]
+    end
+    append!(XSS,val)
+  end
+
+  XSSaggr = [0.0]
+  for j in [state_names;control_names]
+    varnameSS = Symbol(j,"SS")
+    if in(varnameSS,keys(newSSvals))
+      val = newSSvals[varnameSS]
+    else
+      val = oldXSS[getfield(indexesOld,varnameSS)]
+    end
+    append!(XSSaggr,val)
+  end
+  deleteat!(XSSaggr,1)
+
+  return XSS, XSSaggr
+end
+
+function update_XSS(oldXSSaggr,indexes_aggrOld,newSSvals,aggr_names)
   XSSaggr = [0.0]
   for j in aggr_names
     varnameSS = Symbol(j,"SS")
@@ -452,7 +494,7 @@ function linearize_RAmodel(sr::RASteadyResults;FRAsys::Function = FRAsys)
     BA = ForwardDiff.jacobian(x->F(x[1:sr.n_par.ntotal],x[sr.n_par.ntotal+1:end]),zeros(2*sr.n_par.ntotal))
     B = BA[:,1:sr.n_par.ntotal]
     A = BA[:,sr.n_par.ntotal+1:end]
-    gx,hx,alarm_sgu,nk = SolveDiffEq(A,B,sr.n_par)
+    gx,hx,alarm_sgu = SolveDiffEq(A,B,sr.n_par)
     return LinearResults(gx,hx,A,B,alarm_sgu)
 end
 

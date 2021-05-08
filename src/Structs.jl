@@ -271,7 +271,7 @@ macro make_struct(struct_name, s_names, c_names)
 	end)
 end
 
-macro OneAssetmake_struct(struct_name, s_names, c_names)
+macro make_OneAssetstruct(struct_name, s_names, c_names)
     # fields=[:($(entry.args[1])::$(entry.args[2])) for entry in var_names]
     # fieldsSS=[:($(Symbol((entry.args[1]), "SS"))::$(entry.args[2])) for entry in var_names]
     state_names=Symbol.(Base.eval(Main,(s_names)))

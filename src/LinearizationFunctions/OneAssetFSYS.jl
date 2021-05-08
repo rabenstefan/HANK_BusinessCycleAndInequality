@@ -45,7 +45,7 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     # rPrime  = exp.(Xss[indexes.rSS] .+ XPrime[indexes.r])
     ############################################################################
 
-    @generate_equations(aggr_names_ess)
+    @generate_equations([aggr_names_ess;"qlag"])
 
     ############################################################################
     # I.2. Distributions (Γ-multiplying makes sure that they are distributions)
@@ -103,7 +103,6 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     # Error Term on prices/aggregate summary vars (logarithmic, controls)
     KP           = dot(n_par.grid_k,distr_k[:])
     F[indexes.K] = log.(K)     - log.(KP)
-    F[indexes.B] = log.(RLPrime./πPrime) .- log.((rPrime .- 1.0 .+ qPrime)./q)
 
     # Average Human Capital =
     # average productivity (at the productivit grid, used to normalize to 0)
@@ -153,19 +152,19 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     F[indexes.Ht]     =log.(Ht) - log.(Htact)
 
     F[indexes.GiniX]    = log.(GiniX)   - Xss[indexes.GiniXSS]
-    F[indexes.I90share]   = log.(I90share)  - Xss[indexes.I90shareactSS]
-    F[indexes.I90sharenet]   = log.(I90sharenet)  - Xss[indexes.I90sharenetactSS]
+    F[indexes.I90share]   = log.(I90share)  - Xss[indexes.I90shareSS]
+    F[indexes.I90sharenet]   = log.(I90sharenet)  - Xss[indexes.I90sharenetSS]
 
-    F[indexes.w90share] = log.(w90share)  - Xss[indexes.w90shareactSS]
-    F[indexes.GiniW]    = log.(GiniW)   - Xss[indexes.GiniWactSS]
-    F[indexes.GiniC]    = log.(GiniC)   - Xss[indexes.GiniCactSS]
-    F[indexes.sdlgC]    = log.(sdlgC)   - Xss[indexes.sdlgCactSS]
-    F[indexes.P9010C]   = log.(P9010C)  - Xss[indexes.P9010CactSS]
-    F[indexes.P9010I]   = log.(P9010I)  - Xss[indexes.P9010IactSS]
-    F[indexes.GiniI]    = log.(GiniI)   - Xss[indexes.GiniIactSS]
-    F[indexes.P90C]   = log.(P90C)  - Xss[indexes.P90CactSS]
-    F[indexes.P50C]   = log.(P50C)  - Xss[indexes.P50CactSS]
-    F[indexes.P10C]   = log.(P10C)  - Xss[indexes.P10CactSS]
+    F[indexes.w90share] = log.(w90share)  - Xss[indexes.w90shareSS]
+    F[indexes.GiniW]    = log.(GiniW)   - Xss[indexes.GiniWSS]
+    F[indexes.GiniC]    = log.(GiniC)   - Xss[indexes.GiniCSS]
+    F[indexes.sdlgC]    = log.(sdlgC)   - Xss[indexes.sdlgCSS]
+    F[indexes.P9010C]   = log.(P9010C)  - Xss[indexes.P9010CSS]
+    F[indexes.P9010I]   = log.(P9010I)  - Xss[indexes.P9010ISS]
+    F[indexes.GiniI]    = log.(GiniI)   - Xss[indexes.GiniISS]
+    F[indexes.P90C]   = log.(P90C)  - Xss[indexes.P90CSS]
+    F[indexes.P50C]   = log.(P50C)  - Xss[indexes.P50CSS]
+    F[indexes.P10C]   = log.(P10C)  - Xss[indexes.P10CSS]
 
     return F
 end

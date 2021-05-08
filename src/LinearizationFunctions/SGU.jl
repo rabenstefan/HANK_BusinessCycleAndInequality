@@ -127,9 +127,18 @@ function builtin_FO_SO!(Fx, FxP, Fy, FyP, H, F, n_par; chunksize = 5)
     yPi = 1 : n_par.ncontrols_redP
 
     aux(x)      = F([x[xi];x[yi]],[x[xPi];x[yPi]])
+    if 0 < count(isnan.(aux(x0)))
+        println("Not-a-number in function at 0!")
+        println(aux(x0))
+        return
+    end
     # Select chunk size
     cfg_so      = ForwardDiff.JacobianConfig(nothing,x0,ForwardDiff.Chunk{chunksize}())
     diffres     = ForwardDiff.jacobian(x -> aux(x),x0,cfg_so)#[aux(x);vec(ForwardDiff.jacobian(aux,x))],x0,cfg_so)
+    if 0 < count(isnan.(diffres))
+        println("Not-a-number in jacobian!")
+        return
+    end
     #H[:,:]      = reshape(diffres[ntot+1:end,:],ntot,Hcoln)
     ix_sts = [i for i=1:n_par.nstates]
     ix_cntr = [i for i=1:n_par.ncontrols]
