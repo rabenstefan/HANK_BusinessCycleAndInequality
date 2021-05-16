@@ -136,14 +136,15 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         println("av_tax_rateSS: ",av_tax_rateSS)
         TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))
         println("TSS: ",TSS)
-        println("qΠSS: ",qΠSS_fnc(YSS,m_par.RB,m_par))
-        BgovSS        = BSS .- qΠSS_fnc(YSS,m_par.RB,m_par)
+        println("qΠSS: ",qΠSS_fnc(YSS,m_par.RB,m_par) .- 1.0)
+        BgovSS        = BSS .- qΠSS_fnc(YSS,m_par.RB,m_par) .+ 1.0
         println("BgovSS: ", BgovSS)
         GSS           = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
+        qΠSS            =qΠSS_fnc(YSS,m_par.RB,m_par)
 
         distr_m_SS, distr_k_SS, distr_y_SS, share_borrowerSS, GiniWSS, I90shareSS,I90sharenetSS, GiniXSS,
                 sdlogxSS, P9010CSS, GiniCSS, sdlgCSS, P9010ISS, GiniISS, sdlgISS, w90shareSS, P10CSS, P50CSS, P90CSS =
-                distrSummaries(distrSS, c_a_starSS, c_n_starSS, n_par, inc,incgross, m_par)
+                distrSummaries(distrSS, c_a_starSS, c_n_starSS, n_par, inc,incgross,value_liquid(BSS,qΠSS,qΠSS,m_par), m_par)
         # ------------------------------------------------------------------------------
         ## STEP 2: Dimensionality reduction
         # ------------------------------------------------------------------------------

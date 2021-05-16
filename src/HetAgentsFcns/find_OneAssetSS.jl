@@ -123,8 +123,8 @@ function find_OneAssetSS(state_names,control_names,BtoK;ModelParamStruct = Model
         println("TSS: ",TSS)
         BSS = BtoK * KSS
         println("BSS: ",BSS)
-        println("qΠSS: ",qΠSS_fnc(YSS,m_par.RB,m_par))
-        BgovSS        = BSS .- qΠSS_fnc(YSS,m_par.RB,m_par)
+        println("qΠSS: ",qΠSS_fnc(YSS,m_par.RB,m_par) .- 1.0)
+        BgovSS        = BSS .- qΠSS_fnc(YSS,m_par.RB,m_par) .+ 1.0
         println("BgovSS: ", BgovSS)
         GSS           = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
         # This should be improved by writing OneAssetDistribution function

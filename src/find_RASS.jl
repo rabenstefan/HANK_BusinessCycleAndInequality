@@ -49,7 +49,7 @@ function find_RASS(state_names,control_names,BtoK,av_tax_rate;ModelParamStruct =
         RLSS                    = RBSS
         ISS                     = m_par.δ_0*KSS
         av_tax_rateSS           = av_tax_rate
-        BgovSS                  = BSS .- qΠSS_fnc(YSS,RBSS,m_par)
+        BgovSS                  = BSS .- qΠSS_fnc(YSS,RBSS,m_par) .+ 1.0
         TSS                     = av_tax_rate*(wSS*NSS + profitsSS_fnc(YSS,RBSS,m_par))
         GSS                     = TSS - (RBSS/m_par.π-1.0)*BgovSS
         @include "input_aggregate_steady_state.jl"

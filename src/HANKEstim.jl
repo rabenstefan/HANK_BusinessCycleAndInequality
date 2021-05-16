@@ -30,7 +30,7 @@ export LinearResults, linearize_full_model, EstimResults, find_mode, load_mode, 
         employment, output, wage, MakeTransition, build_transition_matrix, mutil, find_RASS, 
         RASteadyResults, OneAssetSteadyResults, load_RAsteadystate, linearize_RAmodel,
         compute_OneAssetSS, @make_OneAssetstruct, @make_OneAssetfn, load_OneAssetsteadystate,
-        OneAssetincomes
+        OneAssetincomes, value_liquid
 
 distr_names=["GiniW", "GiniC", "GiniX", "GiniI", "sdlgC", "P9010C", "I90share",
 "I90sharenet", "P9010I", "w90share", "P10C", "P50C", "P90C"]

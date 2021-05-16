@@ -12,11 +12,13 @@ wage(K::Number, A::Number,N::Number, m_par)     = A.* (1-m_par.α) .* (K./N) .^m
 output(K::Number, A::Number,N::Number, m_par)  = A.* K .^(m_par.α).*N .^(1-m_par.α)
 employment(K::Number, A::Number, m_par)     = (A.* (1.0-m_par.α) .* (m_par.τ_lev .* (1.0 - m_par.τ_prog)).^(1.0 /(1.0 - m_par.τ_prog)) .* K .^(m_par.α )).^((1.0 - m_par.τ_prog)./(m_par.γ+m_par.τ_prog+(m_par.α).*(1 - m_par.τ_prog))) # A=TFP*MC
 # price of tradable stock in steady state
-qΠSS_fnc(Y::Number,RB,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(RB ./m_par.π .- 1 .+ m_par.ιΠ) 
+qΠSS_fnc(Y::Number,RB,m_par) = m_par.ωΠ.*(1.0 .- 1.0 ./ m_par.μ).*Y./(RB ./m_par.π .- 1 .+ m_par.ιΠ) + 1.0
 # steady state payout to entrepreneurs
-profitsSS_fnc(Y::Number,RB, m_par) = (1.0 - m_par.ωΠ).*(1.0 .- 1.0 ./ m_par.μ) .* Y .+ m_par.ιΠ .* qΠSS_fnc(Y,RB,m_par)
+profitsSS_fnc(Y::Number,RB, m_par) = (1.0 - m_par.ωΠ).*(1.0 .- 1.0 ./ m_par.μ) .* Y .+ m_par.ιΠ .* (qΠSS_fnc(Y,RB,m_par) .-1.0)
 # Average labor productivity (possibly with entrepreneur)
 H_fnc(grid_y,distr_y,m_par) = dot([grid_y[1:end-1];m_par.y_e],distr_y)
+# Valuation of liquid wealth (stock)
+value_liquid(B,qΠ,qΠlag,m_par) = 1.0 .+ ((qΠ .- 1.0) .*(1-m_par.ιΠ) .- qΠlag .+ 1.0)./B
 
 @doc raw"""
     distrSummaries(distr,c_a_star,c_n_star,n_par,inc,incgross,m_par)
@@ -40,9 +42,9 @@ income and wealth shares, and 10%, 50%, and 90%-consumption quantiles.
 """
 function distrSummaries(distr::AbstractArray,c_a_star::AbstractArray,
                         c_n_star::AbstractArray, n_par::NumericalParameters,
-                        inc::AbstractArray,incgross::AbstractArray, m_par)
+                        inc::AbstractArray,incgross::AbstractArray,valueliquid, m_par)
     ## Distributional summaries
-    mplusk = (n_par.mesh_m[:,:,1] + inc[4][:,:,1])[:]
+    mplusk = (valueliquid.*n_par.mesh_m[:,:,1] + inc[4][:,:,1])[:]
     IX=sortperm(mplusk)
     mplusk          = mplusk[IX]
     moneycapital_pdf= sum(distr, dims=3)
@@ -101,7 +103,7 @@ function distrSummaries(distr::AbstractArray,c_a_star::AbstractArray,
     giniconsumption = 1-(sum(c_pdf.*(S[1:end-1]+S[2:end]))/S[end]);
     sdlogc          = sqrt(c_pdf[:]'*log.(c[:]).^2-(c_pdf[:]'*log.(c[:]))^2);
 
-    Yidio           = inc[6]+inc[2]+inc[3] - n_par.mesh_m
+    Yidio           = inc[6]+inc[2]+inc[3] - valueliquid*n_par.mesh_m
     IX              = sortperm(Yidio[:])
     Yidio           = Yidio[IX]
     Y_pdf           = distr[IX]
@@ -111,7 +113,7 @@ function distrSummaries(distr::AbstractArray,c_a_star::AbstractArray,
     y9010           = Yidio[p90]./Yidio[p10]
     I90sharenet     = sum(Yidio[p90:end].*Y_pdf[p90:end])./sum(Yidio.*Y_pdf);
 
-    Yidio           = incgross[1]+incgross[2]+incgross[3] - n_par.mesh_m
+    Yidio           = incgross[1]+incgross[2]+incgross[3] - valueliquid*n_par.mesh_m
     IX              = sortperm(Yidio[:])
     Yidio           = Yidio[IX]
     Y_pdf           = distr[IX]
