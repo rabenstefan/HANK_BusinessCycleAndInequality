@@ -9,9 +9,9 @@ const control_names_RAess = ["r","w","π","q","qΠ","RL","N","mcw","Ht","av_tax_
 const aggr_names_ess = [state_names_ess;control_names_ess]
 
 const state_names_opt=["Z", "ZI", "μ","μw","Kstate","BtoK", "Ylag", "Blag", "Zlag", "Tlag",
-"Glag", "Ilag", "wlag", "qlag", "qΠlag", "Nlag", "Clag", "πlag", "σlag", "rlag", "RBlag",
+"Glag", "Ilag", "wlag", "qlag", "Nlag", "Clag", "πlag", "σlag", "rlag", "RBlag",
 "av_tax_ratelag", "τproglag", "mcwwlag", "Gshock", "Tlevshock", "Tprogshock", "Rshock", "Sshock"]
 
-const control_names_opt=["πw", "Y" ,"C", "mc", "u","I","qΠ","Bgov","firm_profits","BY","TY", "mcww","G","τprog_obs","Ygrowth", "Bgrowth", "Zgrowth",
+const control_names_opt=["πw", "Y" ,"C", "mc", "u","I","Bgov","firm_profits","BY","TY", "mcww","G","τprog_obs","Ygrowth", "Bgrowth", "Zgrowth",
 "Ggrowth", "Igrowth", "wgrowth", "qgrowth", "Ngrowth", "Cgrowth", "πgrowth", "σgrowth",
 "τproggrowth", "rgrowth", "RBgrowth", "mcwwgrowth", "Tgrowth"]
