@@ -66,7 +66,7 @@ function SGU_estim(XSSaggr::Array, A::Array, B::Array,
     # Solve the linearized model: Policy Functions and LOMs
     ############################################################################
     BLAS.set_num_threads(Threads.nthreads())
-    gx,hx, alarm_sgu,nk = SolveDiffEq(A,B,n_par;estim=estim)
+    gx,hx, alarm_sgu,nk = SolveDiffEq(A,B,n_par,estim)
     return gx, hx, alarm_sgu, nk, A, B
 end
 
