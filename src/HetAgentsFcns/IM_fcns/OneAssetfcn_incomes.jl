@@ -1,4 +1,4 @@
-function OneAssetincomes(n_par,m_par,distr,N,r,BtoK,w,profits,A,RL,π,mcw,q,τprog,τlev,Ht,H)
+function OneAssetincomes(n_par,m_par,distr,N,r,BtoK,liquidvalue,w,profits,A,RL,π,mcw,q,τprog,τlev,Ht,H)
 
     # NSS       = employment(KSS, 1.0 ./ (m_par.μ * m_par.μw), m_par)
     # rSS       = interest(KSS, 1.0 / m_par.μ, NSS, m_par)
@@ -19,8 +19,8 @@ function OneAssetincomes(n_par,m_par,distr,N,r,BtoK,w,profits,A,RL,π,mcw,q,τpr
         (1.0 .- mcw).*w.*N,# labor income (NEW)
         (r .- 1.0).* meshes.k, # rental income
         eff_int .* BtoK .* meshes.k, # liquid asset Income
-        meshes.k .* q,
-        mcw .*w .*N ./(Ht) .*(meshes.y ./H) .^tax_prog_scale] # capital liquidation Income (q=1 in steady state)
+        meshes.k .* (q+liquidvalue*BtoK), # asset valuation
+        mcw .*w .*N ./(Ht) .*(meshes.y ./H) .^tax_prog_scale] 
     incgross[1][:,end].= meshes.y[:,end] .* profits .+ entr_laborinc  # profit income net of taxes
     incgross[5][:,end].= meshes.y[:,end] .* profits .+ entr_laborinc # profit income net of taxes
     
@@ -35,7 +35,7 @@ function OneAssetincomes(n_par,m_par,distr,N,r,BtoK,w,profits,A,RL,π,mcw,q,τpr
         ((1.0 .- mcw) .* w .*N .*(1.0 .- av_tax_rate)),# labor income (NEW)
         (r .- 1.0) .* meshes.k, # rental income
         eff_int .* BtoK .* meshes.k, # liquid asset Income
-        meshes.k .* q, # capital liquidation Income (q=1 in steady state)
+        meshes.k .* (q+liquidvalue*BtoK), # asset valuation
         τlev.*(mcw .*w .*N .* meshes.y ./H).^(1.0 .-τprog).*((1.0 .- τprog)/(m_par.γ+1))] 
     inc[1][:,end].= τlev.*((meshes.y[:,end] .* profits).^(1.0 .- τprog) .+ GHHFA .* (entr_laborinc).^(1.0 .- τprog))  # profit income net of taxes
     inc[5][:,end].= τlev.*(entr_laborinc).^(1.0 .- τprog) .* ((1.0 .- τprog)/(m_par.γ+1))

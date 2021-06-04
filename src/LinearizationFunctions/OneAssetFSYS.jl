@@ -112,7 +112,8 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     #               III. 2. Heterogeneous Agent Part                           #
     ############################################################################
     # Incomes
-    incgross, inc,~,~,tax_prog_scale,meshes = OneAssetincomes(n_par,m_par,distr,N,r,B/K,w,profits,A,RL,π,mcw,q,τprog,τlev,Ht,H)
+    liquidvalue = value_liquid(B,qΠ,qΠlag,m_par)
+    incgross, inc,~,~,tax_prog_scale,meshes = OneAssetincomes(n_par,m_par,distr,N,r,B/K,liquidvalue,w,profits,A,RL,π,mcw,q,τprog,τlev,Ht,H)
     if balanced_budget
         # Rebate government spending lump-sum to all households
         inc[1] .= inc[1] .+ G
@@ -146,25 +147,27 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     temp          = distr_y'*Π# dropdims(sum(dPrs,dims=(1,2)),dims=(1,2))
     F[indexes.distr_y] = temp[1:end-1] - distr_y_Prime[1:end-1]
 
-    # ToDo: distr_summary for one asset
+    ~, ~, GiniWact, I90shareact,I90sharenetact, GiniXact,
+                sdlogxact, P9010Cact, GiniCact, sdlgCact, P9010Iact, GiniIact, sdlgIact, w90shareact, P10Cact, P50Cact, P90Cact =
+                distrSummaries(distr, c_star, n_par, inc,incgross,q)
 
     Htact       = dot(distr_y[1:end],([n_par.grid_y[1:end-1];m_par.y_e]/H).^(tax_prog_scale))
     F[indexes.Ht]     =log.(Ht) - log.(Htact)
 
-    F[indexes.GiniX]    = log.(GiniX)   - Xss[indexes.GiniXSS]
-    F[indexes.I90share]   = log.(I90share)  - Xss[indexes.I90shareSS]
-    F[indexes.I90sharenet]   = log.(I90sharenet)  - Xss[indexes.I90sharenetSS]
+    F[indexes.GiniX]    = log.(GiniX)   - log.(GiniXact)
+    F[indexes.I90share]   = log.(I90share)  - log.(I90shareact)
+    F[indexes.I90sharenet]   = log.(I90sharenet)  - log.(I90sharenetact)
 
-    F[indexes.w90share] = log.(w90share)  - Xss[indexes.w90shareSS]
-    F[indexes.GiniW]    = log.(GiniW)   - Xss[indexes.GiniWSS]
-    F[indexes.GiniC]    = log.(GiniC)   - Xss[indexes.GiniCSS]
-    F[indexes.sdlgC]    = log.(sdlgC)   - Xss[indexes.sdlgCSS]
-    F[indexes.P9010C]   = log.(P9010C)  - Xss[indexes.P9010CSS]
-    F[indexes.P9010I]   = log.(P9010I)  - Xss[indexes.P9010ISS]
-    F[indexes.GiniI]    = log.(GiniI)   - Xss[indexes.GiniISS]
-    F[indexes.P90C]   = log.(P90C)  - Xss[indexes.P90CSS]
-    F[indexes.P50C]   = log.(P50C)  - Xss[indexes.P50CSS]
-    F[indexes.P10C]   = log.(P10C)  - Xss[indexes.P10CSS]
+    F[indexes.w90share] = log.(w90share)  - log.(w90shareact)
+    F[indexes.GiniW]    = log.(GiniW)   - log.(GiniWact)
+    F[indexes.GiniC]    = log.(GiniC)   - log.(GiniCact)
+    F[indexes.sdlgC]    = log.(sdlgC)   - log.(sdlgCact)
+    F[indexes.P9010C]   = log.(P9010C)  - log.(P9010Cact)
+    F[indexes.P9010I]   = log.(P9010I)  - log.(P9010Iact)
+    F[indexes.GiniI]    = log.(GiniI)   - log.(GiniIact)
+    F[indexes.P90C]   = log.(P90C)  - log.(P90Cact)
+    F[indexes.P50C]   = log.(P50C)  - log.(P50Cact)
+    F[indexes.P10C]   = log.(P10C)  - log.(P10Cact)
 
     return F
 end

@@ -21,6 +21,79 @@ H_fnc(grid_y,distr_y,m_par) = dot([grid_y[1:end-1];m_par.y_e],distr_y)
 value_liquid(B,qΠ,qΠlag,m_par) = 1.0 .+ ((qΠ .- 1.0) .*(1-m_par.ιΠ) .- qΠlag .+ 1.0)./B
 
 @doc raw"""
+    distrSummaries(distr,c_star,n_par,inc,incgross,valueliquid,m_par)
+
+Compute distributional summary statistics for one asset economy.
+"""
+function distrSummaries(distr::AbstractArray,c_star::AbstractArray,n_par,inc::AbstractArray,incgross::AbstractArray,q::Number)
+    wealth = inc[4][:,1]
+    capital_pdf = sum(distr,dims=2)[:]
+    capital_cdf = cumsum(capital_pdf)
+    S = [0;cumsum(capital_pdf.*wealth)]
+    giniwealth = 1 - (sum(capital_pdf.*(S[1:end-1]+S[2:end]))/S[end])
+    distr_y = sum(distr,dims=1)
+    
+    p50 = count(capital_cdf.<0.5)+1
+    p90 = count(capital_cdf.<0.9)+1
+    #w90w50 = wealth[p90]./wealth[p50]
+    w90share = sum(wealth[p90:end].*capital_pdf[p90:end])./sum(wealth.*capital_pdf)
+    x = c_star
+    aux_x = inc[5]
+    c = x + aux_x
+    IX = sortperm(x[:])
+    x = x[IX]
+    x_pdf = distr[IX]
+    S               = cumsum(x_pdf.*x)
+    S               = [0 S']
+    ginicompconsumption = 1-(sum(x_pdf.*(S[1:end-1]+S[2:end]))/S[end])
+    sdlogx          = sqrt(x_pdf[:]'*log.(x[:]).^2-(x_pdf[:]'*log.(x[:]))^2)
+    IX              = sortperm(c[:])
+    c               = c[IX]
+    c_pdf           = distr[IX]
+    S               = cumsum(c_pdf.*c)
+    c_cdf           = cumsum(c_pdf)
+    p10             = count(c_cdf.<0.1)+1
+    p50             = count(c_cdf.<0.5)+1
+    p90             = count(c_cdf.<0.9)+1
+    c9010           = c[p90]./c[p10]
+    p10C            = c[p10]
+    p50C            = c[p50]
+    p90C            = c[p90]
+    S               = [0 S']
+    giniconsumption = 1-(sum(c_pdf.*(S[1:end-1]+S[2:end]))/S[end])
+    sdlogc          = sqrt(c_pdf[:]'*log.(c[:]).^2-(c_pdf[:]'*log.(c[:]))^2)
+
+    k_mesh          = repeat(n_par.grid_k,1,n_par.ny)
+    Yidio           = inc[6]+inc[2]+inc[3] - (inc[4] - q*k_mesh)
+    IX              = sortperm(Yidio[:])
+    Yidio           = Yidio[IX]
+    Y_pdf           = distr[IX]
+    Y_cdf           = cumsum(Y_pdf)
+    p10             = count(Y_cdf.<0.1)+1
+    p90             = count(Y_cdf.<0.9)+1
+    y9010           = Yidio[p90]./Yidio[p10]
+    I90sharenet     = sum(Yidio[p90:end].*Y_pdf[p90:end])./sum(Yidio.*Y_pdf);
+
+    Yidio           = incgross[1]+incgross[2]+incgross[3] - (incgross[4] - q*k_mesh)
+    IX              = sortperm(Yidio[:])
+    Yidio           = Yidio[IX]
+    Y_pdf           = distr[IX]
+    Y_cdf           = cumsum(Y_pdf)
+    p10             = count(Y_cdf.<0.1)+1
+    p90             = count(Y_cdf.<0.9)+1
+    y9010           = Yidio[p90]./Yidio[p10]
+    I90share        = sum(Yidio[p90:end].*Y_pdf[p90:end])./sum(Yidio.*Y_pdf);
+
+    S               = cumsum(Y_pdf.*Yidio)
+    S               = [0 S']
+    giniincome      = 1-(sum(Y_pdf.*(S[1:end-1]+S[2:end]))/S[end])
+    sdlogy          = sqrt(Y_pdf[:]'*log.(Yidio[:]).^2-(Y_pdf[:]'*log.(Yidio[:]))^2);
+   
+    return     capital_pdf, distr_y, giniwealth, I90share,I90sharenet, ginicompconsumption,#=
+            =# sdlogx, c9010, giniconsumption, sdlogc, y9010, giniincome, sdlogy, w90share, p10C, p50C, p90C
+end
+
+@doc raw"""
     distrSummaries(distr,c_a_star,c_n_star,n_par,inc,incgross,m_par)
 
 Compute distributional summary statistics, e.g. Gini indexes, top-10%
@@ -103,6 +176,7 @@ function distrSummaries(distr::AbstractArray,c_a_star::AbstractArray,
     giniconsumption = 1-(sum(c_pdf.*(S[1:end-1]+S[2:end]))/S[end]);
     sdlogc          = sqrt(c_pdf[:]'*log.(c[:]).^2-(c_pdf[:]'*log.(c[:]))^2);
 
+    # Using inc[6] (reason: without scaling), do I not leave out labor union profits?
     Yidio           = inc[6]+inc[2]+inc[3] - valueliquid*n_par.mesh_m
     IX              = sortperm(Yidio[:])
     Yidio           = Yidio[IX]
