@@ -18,7 +18,7 @@ profitsSS_fnc(Y::Number,RB, m_par) = (1.0 - m_par.ωΠ).*(1.0 .- 1.0 ./ m_par.μ
 # Average labor productivity (possibly with entrepreneur)
 H_fnc(grid_y,distr_y,m_par) = dot([grid_y[1:end-1];m_par.y_e],distr_y)
 # Valuation of liquid wealth (stock)
-value_liquid(B,qΠ,qΠlag,m_par) = 1.0 .+ ((qΠ .- 1.0) .*(1-m_par.ιΠ) .- qΠlag .+ 1.0)./B
+value_liquid(B,qΠ,qΠlag) = 1.0 .+ (qΠ .- qΠlag)./B
 
 @doc raw"""
     distrSummaries(distr,c_star,n_par,inc,incgross,valueliquid,m_par)

@@ -119,7 +119,7 @@ function find_OneAssetSS(state_names,control_names,BtoK;ModelParamStruct = Model
         # Produce distributional summary statistics
         BSS = BtoK * KSS
         qΠSS            =qΠSS_fnc(YSS,RBSS,m_par)
-        liquidvalue = value_liquid(BSS,qΠSS,qΠSS,m_par)
+        liquidvalue = value_liquid(BSS,qΠSS,qΠSS)
         incgross, inc, av_tax_rateSS, taxrev = OneAssetincomes(n_par,m_par,distrSS,NSS,1 .+ rSS,BtoK,liquidvalue,wSS,ProfitsSS,1.0,RLSS,m_par.π,1.0 ./ m_par.μw,1.0,m_par.τ_prog,m_par.τ_lev,1.0,H)
         println("av_tax_rateSS: ",av_tax_rateSS)
         TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))

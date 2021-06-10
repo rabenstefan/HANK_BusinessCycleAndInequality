@@ -112,7 +112,7 @@ function Fsys(X::AbstractArray, XPrime::AbstractArray, Xss::Array{Float64,1}, m_
     #               III. 2. Heterogeneous Agent Part                           #
     ############################################################################
     # Incomes
-    liquidvalue = value_liquid(B,qΠ,qΠlag,m_par)
+    liquidvalue = value_liquid(B,qΠ,qΠlag)
     incgross, inc,~,~,tax_prog_scale,meshes = OneAssetincomes(n_par,m_par,distr,N,r,B/K,liquidvalue,w,profits,A,RL,π,mcw,q,τprog,τlev,Ht,H)
     if balanced_budget
         # Rebate government spending lump-sum to all households
