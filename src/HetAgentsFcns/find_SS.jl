@@ -138,8 +138,9 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         println("TSS: ",TSS)
         println("qΠSS: ",qΠSS_fnc(YSS,m_par.RB,m_par) .- 1.0)
         BgovSS        = BSS .- qΠSS_fnc(YSS,m_par.RB,m_par) .+ 1.0
-        println("BgovSS: ", BgovSS)
+        println("BgovSS/YSS: ", BgovSS/YSS)
         GSS           = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
+        println("GSS/YSS: ",GSS/YSS)
         qΠSS            =qΠSS_fnc(YSS,m_par.RB,m_par)
 
         distr_m_SS, distr_k_SS, distr_y_SS, share_borrowerSS, GiniWSS, I90shareSS,I90sharenetSS, GiniXSS,
