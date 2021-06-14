@@ -74,6 +74,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
                 Ksupply(m_par.RB,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
         println("first BSS: ", BSS)
         println("first BSS/YSS: ",BSS/YSS)
+        println("first rSS: ",rSS)
         ## bb.) refinement
         ny              = n_par.ny_refined; # eigs in Ksupply quickly increases in runtime in ny
         grid_y, Π, bounds= Tauchen(m_par.ρ_h,ny)
@@ -126,6 +127,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
                 Ksupply(RLSS,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
         println("2nd BSS: ",BSS)
         println("BSS/YSS: ",BSS/YSS)
+        println("rSS: ",rSS)
         VmSS                    = log.(VmSS)
         VkSS                    = log.(VkSS)
         RBSS                    = m_par.RB
