@@ -73,7 +73,9 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
                 c_a_starSS, m_a_starSS, k_a_starSS, c_n_starSS, m_n_starSS,VmSS, VkSS =
                 Ksupply(m_par.RB,1.0+ rSS,wSS*NSS/n_par.H,ProfitsSS,n_par,m_par)
         println("first BSS: ", BSS)
+        println("first KSS: ", KSS)
         println("first BSS/YSS: ",BSS/YSS)
+        println("first KSS/YSS: ",KSS/YSS)
         println("first rSS: ",rSS)
         ## bb.) refinement
         ny              = n_par.ny_refined; # eigs in Ksupply quickly increases in runtime in ny
@@ -138,7 +140,7 @@ function find_SS(state_names,control_names;ModelParamStruct = ModelParameters,fl
         println("av_tax_rateSS: ",av_tax_rateSS)
         TSS           = (distrSS[:]' * taxrev[:] + av_tax_rateSS*((1.0 .- 1.0 ./ m_par.μw).*wSS.*NSS))
         println("TSS: ",TSS)
-        println("qΠSS: ",qΠSS_fnc(YSS,m_par.RB,m_par) .- 1.0)
+        println("StockshareSS: ",(qΠSS_fnc(YSS,m_par.RB,m_par) .- 1.0)/BSS)
         BgovSS        = BSS .- qΠSS_fnc(YSS,m_par.RB,m_par) .+ 1.0
         println("BgovSS/YSS: ", BgovSS/YSS)
         GSS           = TSS - (m_par.RB./m_par.π-1.0)*BgovSS
